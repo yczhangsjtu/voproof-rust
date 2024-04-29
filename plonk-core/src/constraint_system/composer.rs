@@ -771,7 +771,7 @@ where
                                     .map(|(a_bit, b_bit)| a_bit & b_bit)
                                     .collect::<Vec<bool>>();
 
-                                F::from_repr(<F as PrimeField>::BigInt::from_bits_le(&a_and_b))
+                                F::from_bigint(<F as PrimeField>::BigInt::from_bits_le(&a_and_b))
                                     .unwrap()
                                     - *d
                             }
@@ -784,7 +784,7 @@ where
                                     .map(|(a_bit, b_bit)| a_bit ^ b_bit)
                                     .collect::<Vec<bool>>();
 
-                                F::from_repr(<F as PrimeField>::BigInt::from_bits_le(&a_xor_b))
+                                F::from_bigint(<F as PrimeField>::BigInt::from_bits_le(&a_xor_b))
                                     .unwrap()
                                     - *d
                             }

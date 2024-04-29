@@ -301,7 +301,7 @@ mod test {
         table.insert_multi_xor(0, 5);
         table.insert_multi_add(4, 7);
         assert_eq!(table.0.last().unwrap()[2], F::from(126u64));
-        let xor: F = F::from_repr(BigInteger::from_bits_le(
+        let xor: F = F::from_bigint(BigInteger::from_bits_le(
             table.0[36][0]
                 .into_bigint()
                 .to_bits_le()
