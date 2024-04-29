@@ -12,13 +12,12 @@ use ark_crypto_primitives::{
   },
 };
 use ark_ec::pairing::Pairing as PairingEngine;
-use ark_ff::fields::{FftField, Field, FpConfig as FpParameters, PrimeField};
-use ark_r1cs_std::{alloc::AllocVar, fields::fp::FpVar, uint64::UInt64, R1CSVar};
+use ark_ff::fields::{FftField};
+use ark_r1cs_std::{alloc::AllocVar, fields::fp::FpVar, uint64::UInt64};
 use ark_relations::{
-  lc, ns,
+  ns,
   r1cs::{
-    ConstraintSynthesizer, ConstraintSystem as ArkR1CS, ConstraintSystemRef, SynthesisError,
-    Variable,
+    ConstraintSynthesizer, ConstraintSystemRef, SynthesisError,
   },
 };
 
@@ -54,7 +53,7 @@ impl ConstraintSynthesizer<F> for MerkleTreeCircuit {
     let generator: F = <<E as PairingEngine>::ScalarField as FftField>::GENERATOR;
     let leaf_crh_params = super::poseidon_parameters();
     let two_to_one_params = leaf_crh_params.clone();
-    let mut path = Path::<FieldMTConfig> {
+    let path = Path::<FieldMTConfig> {
       leaf_sibling_hash: generator,
       auth_path: vec![generator; self.height],
       leaf_index: 0,

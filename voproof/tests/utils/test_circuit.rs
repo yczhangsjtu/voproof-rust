@@ -1,8 +1,8 @@
-use ark_ff::fields::{FftField, Field, FpConfig as FpParameters, PrimeField};
+use ark_ff::fields::{PrimeField};
 use ark_relations::{
-  lc, ns,
+  lc,
   r1cs::{
-    ConstraintSynthesizer, ConstraintSystem as ArkR1CS, ConstraintSystemRef, SynthesisError,
+    ConstraintSynthesizer, ConstraintSystemRef, SynthesisError,
     Variable,
   },
 };

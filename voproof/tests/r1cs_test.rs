@@ -1,14 +1,11 @@
 use ark_ec::pairing::Pairing as PairingEngine;
 use ark_ff::{
-  fields::{FftField, Field, FpConfig as FpParameters, PrimeField},
-  Fp256,
+  fields::{FftField},
 };
-use ark_r1cs_std::{alloc::AllocVar, fields::fp::FpVar, uint64::UInt64, R1CSVar};
+
 use ark_relations::{
-  lc, ns,
   r1cs::{
-    ConstraintSynthesizer, ConstraintSystem as ArkR1CS, ConstraintSystemRef, SynthesisError,
-    Variable,
+    ConstraintSynthesizer, ConstraintSystem as ArkR1CS,
   },
 };
 use ark_serialize::CanonicalSerialize;

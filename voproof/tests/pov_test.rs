@@ -1,10 +1,8 @@
 use ark_ec::pairing::Pairing as PairingEngine;
-use ark_ff::{FftField, Fp256, FpConfig as FpParameters, PrimeField};
+use ark_ff::{FftField};
 use ark_relations::{
-  lc, ns,
   r1cs::{
-    ConstraintSynthesizer, ConstraintSystem as ArkR1CS, ConstraintSystemRef, SynthesisError,
-    Variable,
+    ConstraintSynthesizer, ConstraintSystem as ArkR1CS,
   },
 };
 use ark_serialize::CanonicalSerialize;
@@ -13,7 +11,7 @@ use voproof::cs::{circuit::fan_in_two::FanInTwoCircuit, pov::*, r1cs::*, Constra
 use voproof::error::Error;
 use voproof::kzg::UniversalParams;
 use voproof::snarks::{voproof_pov::*, voproof_pov_prover_efficient::*, SNARK};
-use voproof::tools::{fmt_field, to_field, try_to_int};
+use voproof::tools::{fmt_field, to_field};
 use voproof::{fmt_ff_vector, generator_of, max};
 mod utils;
 use utils::mt_circuit::MerkleTreeCircuit;

@@ -18,8 +18,8 @@ use voproof::cs::{
 };
 use voproof::kzg::UniversalParams;
 use voproof::snarks::{voproof_r1cs::*, voproof_r1cs_prover_efficient::*, SNARK};
-use voproof::tools::{to_field, to_int};
-use voproof::*;
+use voproof::tools::{to_field};
+
 
 #[derive(Copy)]
 struct TestCircuit<F: PrimeField> {
