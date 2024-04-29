@@ -200,7 +200,7 @@ mod test {
     where
         F: PrimeField,
         P: TEModelParameters<BaseField = F>,
-        PC: HomomorphicCommitment<F>,
+        PC: HomomorphicCommitment<F, S>,
     {
         let res = gadget_tester::<F, P, PC>(
             |composer: &mut StandardComposer<F, P>| {
@@ -229,7 +229,7 @@ mod test {
     where
         F: PrimeField,
         P: TEModelParameters<BaseField = F>,
-        PC: HomomorphicCommitment<F>,
+        PC: HomomorphicCommitment<F, S>,
     {
         gadget_tester::<F, P, PC>(
             |composer: &mut StandardComposer<F, P>| {

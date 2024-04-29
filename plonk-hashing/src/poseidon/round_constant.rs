@@ -54,7 +54,7 @@ pub fn generate_constants<F: PrimeField>(
                     // num_bits)]     random_int =
                     // int("".join(str(i) for i in random_bits), 2)
                     //     return random_int
-                    let mut repr = F::default().into_repr().to_bytes_be();
+                    let mut repr = F::default().into_bigint().to_bytes_be();
                     grain.get_next_bytes(repr.as_mut());
                     repr.reverse();
                     if let Some(f) = F::from_random_bytes(&repr) {
@@ -105,12 +105,8 @@ impl GrainLFSR {
     }
 
     fn generate_new_bit(&mut self) -> bool {
-        let new_bit = self.bit(62)
-            ^ self.bit(51)
-            ^ self.bit(38)
-            ^ self.bit(23)
-            ^ self.bit(13)
-            ^ self.bit(0);
+        let new_bit =
+            self.bit(62) ^ self.bit(51) ^ self.bit(38) ^ self.bit(23) ^ self.bit(13) ^ self.bit(0);
         self.state.pop_front();
         self.state.push_back(new_bit);
         new_bit

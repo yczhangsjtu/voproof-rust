@@ -37,16 +37,16 @@ blake2 = "0.10.6"
 rayon = { version = "1", optional = true }
 
 [dev-dependencies]
-crypto-primitives-voproof = { version = "^0.2.0", path = "../crypto-primitives" }
+ark-crypto-primitives = "^0.4.0"
 ark-sponge = "^0.3.0"
 ark-r1cs-std = "^0.4.0"
 ark-groth16 = "^0.4.0"
-plonk-voproof = { version = "^0.2.0", path = "../plonk" }
+# plonk-voproof = { version = "^0.2.0", path = "../plonk" }
 rand_core = "0.6"
 ark-ed-on-bls12-381 = "0.4"
 
 [features]
-default = ["std", "parallel", "crypto-primitives-voproof/r1cs"]
+default = ["std", "parallel", "ark-crypto-primitives/r1cs"]
 std = [
     "ark-ff/std",
     "ark-ec/std",

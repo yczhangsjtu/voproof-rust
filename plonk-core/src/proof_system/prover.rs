@@ -12,28 +12,27 @@ use crate::{
     constraint_system::{StandardComposer, Variable},
     error::{to_pc_error, Error},
     label_polynomial,
-    proof_system::{
-        linearisation_poly, proof::Proof, quotient_poly, ProverKey,
-    },
+    proof_system::{linearisation_poly, proof::Proof, quotient_poly, ProverKey},
     transcript::TranscriptProtocol,
 };
-use ark_ec::{ModelParameters, TEModelParameters};
+use ark_ec::{CurveConfig as ModelParameters, twisted_edwards::TECurveConfig as TEModelParameters};
 use ark_ff::PrimeField;
 use ark_poly::{
-    univariate::DensePolynomial, EvaluationDomain, GeneralEvaluationDomain,
-    UVPolynomial,
+    univariate::DensePolynomial, EvaluationDomain, GeneralEvaluationDomain, DenseUVPolynomial as UVPolynomial,
 };
 use core::marker::PhantomData;
 use itertools::izip;
 use merlin::Transcript;
+use ark_crypto_primitives::sponge::CryptographicSponge;
 
 /// Abstraction structure designed to construct a circuit and generate
 /// [`Proof`]s for it.
-pub struct Prover<F, P, PC>
+pub struct Prover<F, P, PC, S>
 where
     F: PrimeField,
     P: ModelParameters<BaseField = F>,
-    PC: HomomorphicCommitment<F>,
+    PC: HomomorphicCommitment<F, S>,
+    S: CryptographicSponge,
 {
     /// Proving Key which is used to create proofs about a specific PLONK
     /// circuit.
@@ -49,11 +48,12 @@ where
 
     _phantom: PhantomData<PC>,
 }
-impl<F, P, PC> Prover<F, P, PC>
+impl<F, P, PC, S> Prover<F, P, PC, S>
 where
     F: PrimeField,
     P: TEModelParameters<BaseField = F>,
-    PC: HomomorphicCommitment<F>,
+    PC: HomomorphicCommitment<F, S>,
+    S: CryptographicSponge,
 {
     /// Creates a new `Prover` instance.
     pub fn new(label: &'static [u8]) -> Self {
@@ -86,10 +86,7 @@ where
     }
 
     /// Preprocesses the underlying constraint system.
-    pub fn preprocess(
-        &mut self,
-        commit_key: &PC::CommitterKey,
-    ) -> Result<(), Error> {
+    pub fn preprocess(&mut self, commit_key: &PC::CommitterKey) -> Result<(), Error> {
         if self.prover_key.is_some() {
             return Err(Error::CircuitAlreadyPreprocessed);
         }
@@ -104,11 +101,7 @@ where
 
     /// Split `t(X)` poly into 8 n-sized polynomials.
     #[allow(clippy::type_complexity)] // NOTE: This is an ok type for internal use.
-    fn split_tx_poly(
-        &self,
-        n: usize,
-        t_x: &DensePolynomial<F>,
-    ) -> [DensePolynomial<F>; 8] {
+    fn split_tx_poly(&self, n: usize, t_x: &DensePolynomial<F>) -> [DensePolynomial<F>; 8] {
         let mut buf = t_x.coeffs.to_vec();
         buf.resize(n << 3, F::zero());
 
@@ -167,12 +160,13 @@ where
         commit_key: &PC::CommitterKey,
         prover_key: &ProverKey<F>,
         _data: PhantomData<PC>,
-    ) -> Result<Proof<F, PC>, Error> {
-        let domain =
-            GeneralEvaluationDomain::new(self.cs.circuit_bound()).ok_or(Error::InvalidEvalDomainSize {
+    ) -> Result<Proof<F, PC, S>, Error> {
+        let domain = GeneralEvaluationDomain::new(self.cs.circuit_bound()).ok_or(
+            Error::InvalidEvalDomainSize {
                 log_size_of_group: self.cs.circuit_bound().trailing_zeros(),
-                adicity: <<F as ark_ff::FftField>::FftParams as ark_ff::FftParameters>::TWO_ADICITY,
-            })?;
+                adicity: <F as ark_ff::FftField>::TWO_ADICITY,
+            },
+        )?;
         let n = domain.size();
 
         // Since the caller is passing a pre-processed circuit
@@ -195,14 +189,10 @@ where
 
         // Witnesses are now in evaluation form, convert them to coefficients
         // so that we may commit to them.
-        let w_l_poly =
-            DensePolynomial::from_coefficients_vec(domain.ifft(w_l_scalar));
-        let w_r_poly =
-            DensePolynomial::from_coefficients_vec(domain.ifft(w_r_scalar));
-        let w_o_poly =
-            DensePolynomial::from_coefficients_vec(domain.ifft(w_o_scalar));
-        let w_4_poly =
-            DensePolynomial::from_coefficients_vec(domain.ifft(w_4_scalar));
+        let w_l_poly = DensePolynomial::from_coefficients_vec(domain.ifft(w_l_scalar));
+        let w_r_poly = DensePolynomial::from_coefficients_vec(domain.ifft(w_r_scalar));
+        let w_o_poly = DensePolynomial::from_coefficients_vec(domain.ifft(w_o_scalar));
+        let w_4_poly = DensePolynomial::from_coefficients_vec(domain.ifft(w_4_scalar));
 
         let w_polys = [
             label_polynomial!(w_l_poly),
@@ -212,8 +202,8 @@ where
         ];
 
         // Commit to witness polynomials.
-        let (w_commits, w_rands) = PC::commit(commit_key, w_polys.iter(), None)
-            .map_err(to_pc_error::<F, PC>)?;
+        let (w_commits, w_rands) =
+            PC::commit(commit_key, w_polys.iter(), None).map_err(to_pc_error::<F, PC>)?;
 
         // Add witness polynomial commitments to transcript.
         transcript.append(b"w_l", w_commits[0].commitment());
@@ -239,9 +229,8 @@ where
         );
 
         // Compute table poly
-        let table_poly = DensePolynomial::from_coefficients_vec(
-            domain.ifft(&compressed_t_multiset.0),
-        );
+        let table_poly =
+            DensePolynomial::from_coefficients_vec(domain.ifft(&compressed_t_multiset.0));
 
         // Compute query table f
         // When q_lookup[i] is zero the wire value is replaced with a dummy
@@ -252,11 +241,9 @@ where
         //   q_lookup[i] is 0 so the lookup check will pass
 
         let q_lookup_pad = vec![F::zero(); n - self.cs.q_lookup.len()];
-        let padded_q_lookup =
-            &[self.cs.q_lookup.as_slice(), q_lookup_pad.as_slice()].concat();
+        let padded_q_lookup = &[self.cs.q_lookup.as_slice(), q_lookup_pad.as_slice()].concat();
 
-        let mut f_scalars: Vec<MultiSet<F>> =
-            vec![MultiSet::with_capacity(w_l_scalar.len()); 4];
+        let mut f_scalars: Vec<MultiSet<F>> = vec![MultiSet::with_capacity(w_l_scalar.len()); 4];
 
         for (q_lookup, w_l, w_r, w_o, w_4) in izip!(
             padded_q_lookup,
@@ -280,17 +267,14 @@ where
         let compressed_f_multiset = MultiSet::compress(&f_scalars, zeta);
 
         // Compute query poly
-        let f_poly = DensePolynomial::from_coefficients_vec(
-            domain.ifft(&compressed_f_multiset.0),
-        );
+        let f_poly = DensePolynomial::from_coefficients_vec(domain.ifft(&compressed_f_multiset.0));
 
         // Add blinders to query polynomials
         // let f_poly = Self::add_blinder(&f_poly, n, 1);
 
         // Commit to query polynomial
-        let (f_poly_commit, _) =
-            PC::commit(commit_key, &[label_polynomial!(f_poly)], None)
-                .map_err(to_pc_error::<F, PC>)?;
+        let (f_poly_commit, _) = PC::commit(commit_key, &[label_polynomial!(f_poly)], None)
+            .map_err(to_pc_error::<F, PC>)?;
 
         // Add f_poly commitment to transcript
         transcript.append(b"f", f_poly_commit[0].commitment());
@@ -301,22 +285,18 @@ where
             .unwrap();
 
         // Compute h polys
-        let h_1_poly =
-            DensePolynomial::from_coefficients_vec(domain.ifft(&h_1.0));
-        let h_2_poly =
-            DensePolynomial::from_coefficients_vec(domain.ifft(&h_2.0));
+        let h_1_poly = DensePolynomial::from_coefficients_vec(domain.ifft(&h_1.0));
+        let h_2_poly = DensePolynomial::from_coefficients_vec(domain.ifft(&h_2.0));
 
         // Add blinders to h polynomials
         // let h_1_poly = Self::add_blinder(&h_1_poly, n, 1);
         // let h_2_poly = Self::add_blinder(&h_2_poly, n, 1);
 
         // Commit to h polys
-        let (h_1_poly_commit, _) =
-            PC::commit(commit_key, &[label_polynomial!(h_1_poly)], None)
-                .map_err(to_pc_error::<F, PC>)?;
-        let (h_2_poly_commit, _) =
-            PC::commit(commit_key, &[label_polynomial!(h_2_poly)], None)
-                .map_err(to_pc_error::<F, PC>)?;
+        let (h_1_poly_commit, _) = PC::commit(commit_key, &[label_polynomial!(h_1_poly)], None)
+            .map_err(to_pc_error::<F, PC>)?;
+        let (h_2_poly_commit, _) = PC::commit(commit_key, &[label_polynomial!(h_2_poly)], None)
+            .map_err(to_pc_error::<F, PC>)?;
 
         // Add h polynomials to transcript
         transcript.append(b"h1", h_1_poly_commit[0].commitment());
@@ -360,9 +340,8 @@ where
         );
 
         // Commit to permutation polynomial.
-        let (z_poly_commit, _) =
-            PC::commit(commit_key, &[label_polynomial!(z_poly)], None)
-                .map_err(to_pc_error::<F, PC>)?;
+        let (z_poly_commit, _) = PC::commit(commit_key, &[label_polynomial!(z_poly)], None)
+            .map_err(to_pc_error::<F, PC>)?;
 
         // Add permutation polynomial commitment to transcript.
         transcript.append(b"z", z_poly_commit[0].commitment());
@@ -386,9 +365,8 @@ where
         // z_2_poly = Self::add_blinder(&z_2_poly, n, 2);
 
         // Commit to lookup permutation polynomial.
-        let (z_2_poly_commit, _) =
-            PC::commit(commit_key, &[label_polynomial!(z_2_poly)], None)
-                .map_err(to_pc_error::<F, PC>)?;
+        let (z_2_poly_commit, _) = PC::commit(commit_key, &[label_polynomial!(z_2_poly)], None)
+            .map_err(to_pc_error::<F, PC>)?;
 
         // 3. Compute public inputs polynomial.
         let pi_poly = self.cs.get_pi().into_dense_poly(n);
@@ -400,12 +378,10 @@ where
         let alpha = transcript.challenge_scalar(b"alpha");
         transcript.append(b"alpha", &alpha);
 
-        let range_sep_challenge =
-            transcript.challenge_scalar(b"range separation challenge");
+        let range_sep_challenge = transcript.challenge_scalar(b"range separation challenge");
         transcript.append(b"range seperation challenge", &range_sep_challenge);
 
-        let logic_sep_challenge =
-            transcript.challenge_scalar(b"logic separation challenge");
+        let logic_sep_challenge = transcript.challenge_scalar(b"logic separation challenge");
         transcript.append(b"logic seperation challenge", &logic_sep_challenge);
 
         let fixed_base_sep_challenge =
@@ -422,10 +398,8 @@ where
             &var_base_sep_challenge,
         );
 
-        let lookup_sep_challenge =
-            transcript.challenge_scalar(b"lookup separation challenge");
-        transcript
-            .append(b"lookup separation challenge", &lookup_sep_challenge);
+        let lookup_sep_challenge = transcript.challenge_scalar(b"lookup separation challenge");
+        transcript.append(b"lookup separation challenge", &lookup_sep_challenge);
 
         let t_poly = quotient_poly::compute::<F, P>(
             &domain,
@@ -531,28 +505,17 @@ where
         transcript.append(b"d_eval", &evaluations.wire_evals.d_eval);
 
         // Second permutation evals
-        transcript
-            .append(b"left_sig_eval", &evaluations.perm_evals.left_sigma_eval);
-        transcript.append(
-            b"right_sig_eval",
-            &evaluations.perm_evals.right_sigma_eval,
-        );
-        transcript
-            .append(b"out_sig_eval", &evaluations.perm_evals.out_sigma_eval);
-        transcript
-            .append(b"perm_eval", &evaluations.perm_evals.permutation_eval);
+        transcript.append(b"left_sig_eval", &evaluations.perm_evals.left_sigma_eval);
+        transcript.append(b"right_sig_eval", &evaluations.perm_evals.right_sigma_eval);
+        transcript.append(b"out_sig_eval", &evaluations.perm_evals.out_sigma_eval);
+        transcript.append(b"perm_eval", &evaluations.perm_evals.permutation_eval);
 
         // Third lookup evals
         transcript.append(b"f_eval", &evaluations.lookup_evals.f_eval);
-        transcript
-            .append(b"q_lookup_eval", &evaluations.lookup_evals.q_lookup_eval);
-        transcript.append(
-            b"lookup_perm_eval",
-            &evaluations.lookup_evals.z2_next_eval,
-        );
+        transcript.append(b"q_lookup_eval", &evaluations.lookup_evals.q_lookup_eval);
+        transcript.append(b"lookup_perm_eval", &evaluations.lookup_evals.z2_next_eval);
         transcript.append(b"h_1_eval", &evaluations.lookup_evals.h1_eval);
-        transcript
-            .append(b"h_1_next_eval", &evaluations.lookup_evals.h1_next_eval);
+        transcript.append(b"h_1_next_eval", &evaluations.lookup_evals.h1_next_eval);
         transcript.append(b"h_2_eval", &evaluations.lookup_evals.h2_eval);
 
         // Third, all evals needed for custom gates
@@ -588,8 +551,8 @@ where
             label_polynomial!(table_poly),
         ];
 
-        let (aw_commits, aw_rands) = PC::commit(commit_key, &aw_polys, None)
-            .map_err(to_pc_error::<F, PC>)?;
+        let (aw_commits, aw_rands) =
+            PC::commit(commit_key, &aw_polys, None).map_err(to_pc_error::<F, PC>)?;
 
         let aw_opening = PC::open(
             commit_key,
@@ -602,8 +565,7 @@ where
         )
         .map_err(to_pc_error::<F, PC>)?;
 
-        let saw_challenge: F =
-            transcript.challenge_scalar(b"aggregate_witness");
+        let saw_challenge: F = transcript.challenge_scalar(b"aggregate_witness");
 
         let saw_polys = [
             label_polynomial!(z_poly),
@@ -615,8 +577,8 @@ where
             label_polynomial!(table_poly),
         ];
 
-        let (saw_commits, saw_rands) = PC::commit(commit_key, &saw_polys, None)
-            .map_err(to_pc_error::<F, PC>)?;
+        let (saw_commits, saw_rands) =
+            PC::commit(commit_key, &saw_polys, None).map_err(to_pc_error::<F, PC>)?;
 
         let saw_opening = PC::open(
             commit_key,
@@ -627,7 +589,7 @@ where
             &saw_rands,
             None,
         )
-        .map_err(to_pc_error::<F, PC>)?;
+        .map_err(to_pc_error::<F, PC, S>)?;
 
         Ok(Proof {
             a_comm: w_commits[0].commitment().clone(),
@@ -656,10 +618,7 @@ where
     /// Proves a circuit is satisfied, then clears the witness variables
     /// If the circuit is not pre-processed, then the preprocessed circuit will
     /// also be computed.
-    pub fn prove(
-        &mut self,
-        commit_key: &PC::CommitterKey,
-    ) -> Result<Proof<F, PC>, Error> {
+    pub fn prove(&mut self, commit_key: &PC::CommitterKey) -> Result<Proof<F, PC, S>, Error> {
         if self.prover_key.is_none() {
             // Preprocess circuit and store preprocessed circuit and transcript
             // in the Prover.
@@ -671,11 +630,7 @@ where
         }
 
         let prover_key = self.prover_key.as_ref().unwrap();
-        let proof = self.prove_with_preprocessed(
-            commit_key,
-            prover_key,
-            PhantomData::<PC>,
-        )?;
+        let proof = self.prove_with_preprocessed(commit_key, prover_key, PhantomData::<PC>)?;
 
         // Clear witness and reset composer variables
         self.clear_witness();
@@ -684,11 +639,12 @@ where
     }
 }
 
-impl<F, P, PC> Default for Prover<F, P, PC>
+impl<F, P, PC, S> Default for Prover<F, P, PC, S>
 where
     F: PrimeField,
     P: TEModelParameters<BaseField = F>,
-    PC: HomomorphicCommitment<F>,
+    PC: HomomorphicCommitment<F, S>,
+    S: CryptographicSponge,
 {
     #[inline]
     fn default() -> Self {

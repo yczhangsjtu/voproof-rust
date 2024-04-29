@@ -13,8 +13,7 @@ use crate::{
 };
 use ark_ff::FftField;
 use ark_poly::{
-    polynomial::univariate::DensePolynomial, EvaluationDomain, Evaluations,
-    GeneralEvaluationDomain,
+    polynomial::univariate::DensePolynomial, EvaluationDomain, Evaluations, GeneralEvaluationDomain,
 };
 use ark_poly_commit::PCCommitment;
 use ark_serialize::*;
@@ -180,15 +179,9 @@ where
         );
         let domain = GeneralEvaluationDomain::new(n).ok_or(Error::InvalidEvalDomainSize {
             log_size_of_group: n.trailing_zeros(),
-            adicity:
-                <<F as FftField>::FftParams as ark_ff::FftParameters>::TWO_ADICITY,
+            adicity: <F as FftField>::TWO_ADICITY,
         })?;
-        let c = self.compute_lineariser_check_is_one(
-            &domain,
-            z_challenge,
-            alpha.square(),
-            z_poly,
-        );
+        let c = self.compute_lineariser_check_is_one(&domain, z_challenge, alpha.square(), z_poly);
         Ok(&(&a + &b) + &c)
     }
 
@@ -350,8 +343,7 @@ where
             let q_2 = evaluations.wire_evals.c_eval + beta_k2_z + gamma;
 
             let beta_k3_z = beta * K3::<F>() * z_challenge;
-            let q_3 =
-                (evaluations.wire_evals.d_eval + beta_k3_z + gamma) * alpha;
+            let q_3 = (evaluations.wire_evals.d_eval + beta_k3_z + gamma) * alpha;
 
             q_0 * q_1 * q_2 * q_3
         };

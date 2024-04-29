@@ -49,7 +49,7 @@ where
 
     fn scalar_decomposition(&mut self, witness_var: Variable, witness_scalar: F) -> Vec<Variable> {
         // Decompose the bits
-        let scalar_bits_iter = witness_scalar.into_repr().to_bits_le();
+        let scalar_bits_iter = witness_scalar.into_bigint().to_bits_le();
 
         // Add all the bits into the composer
         let scalar_bits_var: Vec<Variable> = scalar_bits_iter
@@ -97,7 +97,7 @@ mod test {
     where
         F: PrimeField,
         P: TEModelParameters<BaseField = F>,
-        PC: HomomorphicCommitment<F>,
+        PC: HomomorphicCommitment<F, S>,
     {
         let res = gadget_tester::<F, P, PC>(
             |composer: &mut StandardComposer<F, P>| {

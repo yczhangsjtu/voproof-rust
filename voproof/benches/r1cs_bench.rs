@@ -66,16 +66,16 @@ impl<F: PrimeField> ConstraintSynthesizer<F> for TestCircuit<F> {
 }
 
 fn computes_max_degree<E: PairingEngine>(scale: usize) -> usize {
-  let c = TestCircuit::<E::Fr> {
-    a: Some(to_field::<E::Fr>(3)),
-    b: Some(to_field::<E::Fr>(2)),
+  let c = TestCircuit::<E::ScalarField> {
+    a: Some(to_field::<E::ScalarField>(3)),
+    b: Some(to_field::<E::ScalarField>(2)),
     num_variables: scale,
     num_constraints: scale,
   };
   let x = vec![c.a.unwrap(), c.b.unwrap(), (c.a.unwrap() * c.b.unwrap())];
   let w = vec![c.a.unwrap(); scale - 3];
 
-  let cs = ArkR1CS::<E::Fr>::new_ref();
+  let cs = ArkR1CS::<E::ScalarField>::new_ref();
   c.generate_constraints(cs.clone()).unwrap();
   let r1cs = R1CS::from(cs.into_inner().unwrap());
 
@@ -84,10 +84,14 @@ fn computes_max_degree<E: PairingEngine>(scale: usize) -> usize {
 
 fn computes_r1cs<E: PairingEngine>(
   scale: usize,
-) -> (R1CS<E::Fr>, R1CSInstance<E::Fr>, R1CSWitness<E::Fr>) {
-  let c = TestCircuit::<E::Fr> {
-    a: Some(to_field::<E::Fr>(3)),
-    b: Some(to_field::<E::Fr>(2)),
+) -> (
+  R1CS<E::ScalarField>,
+  R1CSInstance<E::ScalarField>,
+  R1CSWitness<E::ScalarField>,
+) {
+  let c = TestCircuit::<E::ScalarField> {
+    a: Some(to_field::<E::ScalarField>(3)),
+    b: Some(to_field::<E::ScalarField>(2)),
     num_variables: scale,
     num_constraints: scale,
   };
@@ -96,7 +100,7 @@ fn computes_r1cs<E: PairingEngine>(
   let instance = R1CSInstance { instance: x };
   let witness = R1CSWitness { witness: w };
 
-  let cs = ArkR1CS::<E::Fr>::new_ref();
+  let cs = ArkR1CS::<E::ScalarField>::new_ref();
   c.generate_constraints(cs.clone()).unwrap();
   (R1CS::from(cs.into_inner().unwrap()), instance, witness)
 }
@@ -125,8 +129,7 @@ fn bench_indexer_test_circuit_scale_1000(b: &mut Bencher) {
   let (r1cs, _, _) = computes_r1cs::<E>(1000);
 
   let max_degree = VOProofR1CS::get_max_degree(r1cs.get_size());
-  let universal_params: UniversalParams<E> =
-    VOProofR1CS::setup(max_degree).unwrap();
+  let universal_params: UniversalParams<E> = VOProofR1CS::setup(max_degree).unwrap();
   b.iter(|| {
     VOProofR1CS::index(&universal_params, &r1cs).unwrap();
   });
@@ -137,8 +140,7 @@ fn bench_prover_test_circuit_scale_1000(b: &mut Bencher) {
   let (r1cs, instance, witness) = computes_r1cs::<E>(1000);
 
   let max_degree = VOProofR1CS::get_max_degree(r1cs.get_size());
-  let universal_params: UniversalParams<E> =
-    VOProofR1CS::setup(max_degree).unwrap();
+  let universal_params: UniversalParams<E> = VOProofR1CS::setup(max_degree).unwrap();
   let (pk, vk) = VOProofR1CS::index(&universal_params, &r1cs).unwrap();
   b.iter(|| {
     VOProofR1CS::prove(&pk, &instance, &witness).unwrap();
@@ -149,8 +151,7 @@ fn bench_prover_test_circuit_scale_4000(b: &mut Bencher) {
   let (r1cs, instance, witness) = computes_r1cs::<E>(4000);
 
   let max_degree = VOProofR1CS::get_max_degree(r1cs.get_size());
-  let universal_params: UniversalParams<E> =
-    VOProofR1CS::setup(max_degree).unwrap();
+  let universal_params: UniversalParams<E> = VOProofR1CS::setup(max_degree).unwrap();
   let (pk, vk) = VOProofR1CS::index(&universal_params, &r1cs).unwrap();
   b.iter(|| {
     VOProofR1CS::prove(&pk, &instance, &witness).unwrap();
@@ -162,8 +163,7 @@ fn bench_verifier_test_circuit_scale_1000(b: &mut Bencher) {
   let (r1cs, instance, witness) = computes_r1cs::<E>(1000);
 
   let max_degree = VOProofR1CS::get_max_degree(r1cs.get_size());
-  let universal_params: UniversalParams<E> =
-    VOProofR1CS::setup(max_degree).unwrap();
+  let universal_params: UniversalParams<E> = VOProofR1CS::setup(max_degree).unwrap();
   let (pk, vk) = VOProofR1CS::index(&universal_params, &r1cs).unwrap();
   let proof = VOProofR1CS::prove(&pk, &instance, &witness).unwrap();
   b.iter(|| {
@@ -176,8 +176,7 @@ fn bench_verifier_pe_test_circuit_scale_1000(b: &mut Bencher) {
   let (r1cs, instance, witness) = computes_r1cs::<E>(1000);
 
   let max_degree = VOProofR1CSProverEfficient::get_max_degree(r1cs.get_size());
-  let universal_params: UniversalParams<E> =
-    VOProofR1CSProverEfficient::setup(max_degree).unwrap();
+  let universal_params: UniversalParams<E> = VOProofR1CSProverEfficient::setup(max_degree).unwrap();
   let (pk, vk) = VOProofR1CSProverEfficient::index(&universal_params, &r1cs).unwrap();
   let proof = VOProofR1CSProverEfficient::prove(&pk, &instance, &witness).unwrap();
   b.iter(|| {

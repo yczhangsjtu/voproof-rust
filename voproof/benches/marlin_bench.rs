@@ -65,54 +65,65 @@ impl<F: PrimeField> ConstraintSynthesizer<F> for TestCircuit<F> {
 }
 
 fn computes_universal_scale<E: PairingEngine>(scale: usize) -> (usize, usize, usize) {
-  let c = TestCircuit::<E::Fr> {
-    a: Some(to_field::<E::Fr>(3)),
-    b: Some(to_field::<E::Fr>(2)),
+  let c = TestCircuit::<E::ScalarField> {
+    a: Some(to_field::<E::ScalarField>(3)),
+    b: Some(to_field::<E::ScalarField>(2)),
     num_variables: scale,
     num_constraints: scale,
   };
   let x = vec![c.a.unwrap(), c.b.unwrap(), (c.a.unwrap() * c.b.unwrap())];
   let w = vec![c.a.unwrap(); scale - 3];
 
-  let mut cs = ArkR1CS::<E::Fr>::new_ref();
+  let mut cs = ArkR1CS::<E::ScalarField>::new_ref();
   c.generate_constraints(cs.clone()).unwrap();
   cs.inline_all_lcs();
   let matrices = cs.to_matrices().unwrap();
   (
     matrices.num_constraints,
     matrices.num_instance_variables + matrices.num_witness_variables,
-    max!(matrices.a_num_non_zero, matrices.b_num_non_zero, matrices.c_num_non_zero),
+    max!(
+      matrices.a_num_non_zero,
+      matrices.b_num_non_zero,
+      matrices.c_num_non_zero
+    ),
   )
 }
 
 fn computes_universal_parameter_and_circuit<E: PairingEngine>(
   scale: usize,
 ) -> (
-  UniversalSRS<E::Fr, SonicKZG10<E, P<E::Fr>>>,
-  TestCircuit<E::Fr>,
-  Vec::<E::Fr>,
+  UniversalSRS<E::ScalarField, SonicKZG10<E, P<E::ScalarField>>>,
+  TestCircuit<E::ScalarField>,
+  Vec<E::ScalarField>,
 ) {
   let rng = &mut ark_std::test_rng();
-  let c = TestCircuit::<E::Fr> {
-    a: Some(to_field::<E::Fr>(3)),
-    b: Some(to_field::<E::Fr>(2)),
+  let c = TestCircuit::<E::ScalarField> {
+    a: Some(to_field::<E::ScalarField>(3)),
+    b: Some(to_field::<E::ScalarField>(2)),
     num_variables: scale,
     num_constraints: scale,
   };
   let x = vec![c.a.unwrap(), c.b.unwrap(), (c.a.unwrap() * c.b.unwrap())];
   let w = vec![c.a.unwrap(); scale - 3];
 
-  let mut cs = ArkR1CS::<E::Fr>::new_ref();
+  let mut cs = ArkR1CS::<E::ScalarField>::new_ref();
   c.generate_constraints(cs.clone()).unwrap();
   cs.inline_all_lcs();
   let matrices = cs.to_matrices().unwrap();
   let (m, n, s) = (
     matrices.num_constraints,
     matrices.num_instance_variables + matrices.num_witness_variables,
-    max!(matrices.a_num_non_zero, matrices.b_num_non_zero, matrices.c_num_non_zero),
+    max!(
+      matrices.a_num_non_zero,
+      matrices.b_num_non_zero,
+      matrices.c_num_non_zero
+    ),
   );
   (
-    Marlin::<E::Fr, SonicKZG10<E, P<E::Fr>>, Blake2s>::universal_setup(m, n, s, rng).unwrap(),
+    Marlin::<E::ScalarField, SonicKZG10<E, P<E::ScalarField>>, Blake2s>::universal_setup(
+      m, n, s, rng,
+    )
+    .unwrap(),
     c,
     x,
   )

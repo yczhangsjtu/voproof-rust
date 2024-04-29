@@ -103,7 +103,7 @@ fn main() -> Result<(), Error> {
     let (x, y) = JubJubParameters::AFFINE_GENERATOR_COEFFS;
     let generator: GroupAffine<JubJubParameters> = GroupAffine::new(x, y);
     let point_f_pi: GroupAffine<JubJubParameters> =
-        AffineCurve::mul(&generator, JubJubScalar::from(2u64).into_repr())
+        AffineCurve::mul(&generator, JubJubScalar::from(2u64).into_bigint())
             .into_affine();
     // Prover POV
     let (proof, pi) = {

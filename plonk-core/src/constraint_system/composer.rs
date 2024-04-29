@@ -763,8 +763,8 @@ where
                         + delta(*d_next - four * d)
                         + match (qlogic == F::one(), qlogic == -F::one()) {
                             (true, false) => {
-                                let a_bits = a.into_repr().to_bits_le();
-                                let b_bits = b.into_repr().to_bits_le();
+                                let a_bits = a.into_bigint().to_bits_le();
+                                let b_bits = b.into_bigint().to_bits_le();
                                 let a_and_b = a_bits
                                     .iter()
                                     .zip(b_bits)
@@ -776,8 +776,8 @@ where
                                     - *d
                             }
                             (false, true) => {
-                                let a_bits = a.into_repr().to_bits_le();
-                                let b_bits = b.into_repr().to_bits_le();
+                                let a_bits = a.into_bigint().to_bits_le();
+                                let b_bits = b.into_bigint().to_bits_le();
                                 let a_xor_b = a_bits
                                     .iter()
                                     .zip(b_bits)
@@ -848,7 +848,7 @@ mod test {
     where
         F: PrimeField,
         P: TEModelParameters<BaseField = F>,
-        PC: HomomorphicCommitment<F>,
+        PC: HomomorphicCommitment<F, S>,
     {
         // NOTE: Does nothing except add the dummy constraints.
         let res = gadget_tester::<F, P, PC>(|_: &mut StandardComposer<F, P>| {}, 200);
@@ -859,7 +859,7 @@ mod test {
     where
         F: PrimeField,
         P: TEModelParameters<BaseField = F>,
-        PC: HomomorphicCommitment<F>,
+        PC: HomomorphicCommitment<F, S>,
     {
         // Check that it gives true on zero input:
         let res = gadget_tester::<F, P, PC>(
@@ -888,7 +888,7 @@ mod test {
     where
         F: PrimeField,
         P: TEModelParameters<BaseField = F>,
-        PC: HomomorphicCommitment<F>,
+        PC: HomomorphicCommitment<F, S>,
     {
         // Check that it gives true on equal inputs:
         let res = gadget_tester::<F, P, PC>(
@@ -923,7 +923,7 @@ mod test {
     where
         F: PrimeField,
         P: TEModelParameters<BaseField = F>,
-        PC: HomomorphicCommitment<F>,
+        PC: HomomorphicCommitment<F, S>,
     {
         let res = gadget_tester::<F, P, PC>(
             |composer: &mut StandardComposer<F, P>| {
@@ -949,7 +949,7 @@ mod test {
     where
         F: PrimeField,
         P: TEModelParameters<BaseField = F>,
-        PC: HomomorphicCommitment<F>,
+        PC: HomomorphicCommitment<F, S>,
     {
         let u_params = PC::setup(2 * 30, None, &mut OsRng).unwrap();
 

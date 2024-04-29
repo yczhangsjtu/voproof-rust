@@ -67,16 +67,16 @@ def get_rust_type(expr):
     return "Commitment<E>"
   from .vector import NamedVector
   if isinstance(expr, NamedVector):
-    return "Vec<E::Fr>"
+    return "Vec<E::ScalarField>"
   from .matrix import Matrix
   if isinstance(expr, Matrix):
     # Sparse representation of a matrix
-    return "(Vec<u64>, Vec<u64>, Vec<E::Fr>)"
+    return "(Vec<u64>, Vec<u64>, Vec<E::ScalarField>)"
   if isinstance(expr, Symbol):
     if str(expr).startswith("W"):
       return "KZGProof<E>"
     else:
-      return "E::Fr"
+      return "E::ScalarField"
   raise Exception("Unknown rust type for: %s of type %s" %
                   (latex(expr), type(expr)))
 

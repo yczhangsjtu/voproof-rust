@@ -1,7 +1,7 @@
 use ark_ec::PairingEngine;
 use ark_ff::{
   fields::{FftField, Field, FpParameters, PrimeField},
-  Fp256, to_bytes
+  to_bytes, Fp256,
 };
 use ark_r1cs_std::{alloc::AllocVar, fields::fp::FpVar, uint64::UInt64, R1CSVar};
 use ark_relations::{
@@ -11,8 +11,8 @@ use ark_relations::{
     Variable,
   },
 };
+use ark_serialize::CanonicalSerialize;
 use ark_std::{end_timer, start_timer};
-use ark_serialize::{CanonicalSerialize};
 use voproof::cs::{
   r1cs::{R1CSInstance, R1CSWitness, R1CS},
   ConstraintSystem,
@@ -29,7 +29,7 @@ use utils::test_circuit::TestCircuit;
 //
 
 fn run_r1cs_example<E: PairingEngine>(scale: usize) -> Result<(), Error> {
-  let c = TestCircuit::<E::Fr> {
+  let c = TestCircuit::<E::ScalarField> {
     a: Some(generator_of!(E)),
     b: Some(generator_of!(E) * generator_of!(E)),
     num_variables: scale,
@@ -38,7 +38,7 @@ fn run_r1cs_example<E: PairingEngine>(scale: usize) -> Result<(), Error> {
   let x = vec![c.a.unwrap(), c.b.unwrap(), (c.a.unwrap() * c.b.unwrap())];
   let w = vec![c.a.unwrap(); scale - 3];
 
-  let cs = ArkR1CS::<E::Fr>::new_ref();
+  let cs = ArkR1CS::<E::ScalarField>::new_ref();
   c.generate_constraints(cs.clone()).unwrap();
   let r1cs = R1CS::from(cs.into_inner().unwrap());
   println!("R1CS num rows: {}", r1cs.nrows);
@@ -106,7 +106,7 @@ fn run_r1cs_example<E: PairingEngine>(scale: usize) -> Result<(), Error> {
 }
 
 fn run_r1cs_pe_example<E: PairingEngine>(scale: usize) -> Result<(), Error> {
-  let c = TestCircuit::<E::Fr> {
+  let c = TestCircuit::<E::ScalarField> {
     a: Some(generator_of!(E)),
     b: Some(generator_of!(E) * generator_of!(E)),
     num_variables: scale,
@@ -115,7 +115,7 @@ fn run_r1cs_pe_example<E: PairingEngine>(scale: usize) -> Result<(), Error> {
   let x = vec![c.a.unwrap(), c.b.unwrap(), (c.a.unwrap() * c.b.unwrap())];
   let w = vec![c.a.unwrap(); scale - 3];
 
-  let cs = ArkR1CS::<E::Fr>::new_ref();
+  let cs = ArkR1CS::<E::ScalarField>::new_ref();
   c.generate_constraints(cs.clone()).unwrap();
   let r1cs = R1CS::from(cs.into_inner().unwrap());
   println!("R1CS num rows: {}", r1cs.nrows);
@@ -306,7 +306,7 @@ macro_rules! define_run_r1cs_mt_example {
       let c = MerkleTreeCircuit {
         height: height as usize,
       };
-      let cs = ArkR1CS::<E::Fr>::new_ref();
+      let cs = ArkR1CS::<E::ScalarField>::new_ref();
       c.generate_constraints(cs.clone()).unwrap();
       let cs = cs.into_inner().unwrap();
       let x = cs
@@ -314,7 +314,7 @@ macro_rules! define_run_r1cs_mt_example {
         .iter()
         .skip(1)
         .map(|x| *x)
-        .collect::<Vec<E::Fr>>();
+        .collect::<Vec<E::ScalarField>>();
       let w = cs.witness_assignment.clone();
       let r1cs = R1CS::from(cs);
       println!("R1CS num rows: {}", r1cs.nrows);
@@ -374,7 +374,7 @@ macro_rules! define_run_r1cs_mt_example {
       println!("Proof size: {}", proof.serialized_size());
       ret
     }
-  }
+  };
 }
 
 define_run_r1cs_mt_example!(run_r1cs_mt_example, VOProofR1CS);

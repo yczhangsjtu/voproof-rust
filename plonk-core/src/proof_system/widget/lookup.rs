@@ -14,8 +14,7 @@ use ark_poly::polynomial::univariate::DensePolynomial;
 use ark_poly::{EvaluationDomain, Evaluations, GeneralEvaluationDomain};
 use ark_poly_commit::PolynomialCommitment;
 use ark_serialize::*;
-use crypto_primitives_voproof::sponge::CryptographicSponge;
-
+use ark_crypto_primitives::sponge::CryptographicSponge;
 
 /// Lookup Gates Prover Key
 #[derive(CanonicalDeserialize, CanonicalSerialize, derivative::Derivative)]
@@ -62,12 +61,12 @@ where
     where
         F: PrimeField,
     {
-        let domain_8n = GeneralEvaluationDomain::<F>::new(8 * domain.size())
-        .ok_or(Error::InvalidEvalDomainSize {
-        log_size_of_group: (8 * domain.size()).trailing_zeros(),
-        adicity:
-            <<F as FftField>::FftParams as ark_ff::FftParameters>::TWO_ADICITY,
-    })?;
+        let domain_8n = GeneralEvaluationDomain::<F>::new(8 * domain.size()).ok_or(
+            Error::InvalidEvalDomainSize {
+                log_size_of_group: (8 * domain.size()).trailing_zeros(),
+                adicity: <F as FftField>::TWO_ADICITY,
+            },
+        )?;
 
         Ok((0..domain_8n.size())
             .map(|i| {
@@ -187,8 +186,7 @@ where
         // lookup_sep^2
         let b = {
             let b_0 = epsilon + f_eval;
-            let b_1 =
-                epsilon_one_plus_delta + table_eval + delta * table_next_eval;
+            let b_1 = epsilon_one_plus_delta + table_eval + delta * table_next_eval;
             let b_2 = l1_eval * lookup_sep_cu;
 
             z2_poly * (one_plus_delta * b_0 * b_1 * lookup_sep_sq + b_2)
@@ -232,10 +230,11 @@ where
     pub table_4: PC::Commitment,
 }
 
-impl<F, PC> VerifierKey<F, PC>
+impl<F, PC, S> VerifierKey<F, PC, S>
 where
     F: PrimeField,
-    PC: PolynomialCommitment<F, DensePolynomial<F>>,
+    PC: PolynomialCommitment<F, DensePolynomial<F>, S>,
+    S: CryptographicSponge,
 {
     /// Computes the linearisation commitments.
     pub fn compute_linearisation_commitment(

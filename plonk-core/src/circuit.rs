@@ -12,10 +12,10 @@ use crate::{
     prelude::StandardComposer,
     proof_system::{pi::PublicInputs, Proof, Prover, ProverKey, Verifier, VerifierKey},
 };
-use ark_ec::models::TEModelParameters;
+use ark_ec::models::twisted_edwards::TECurveConfig as TEModelParameters;
 use ark_ff::PrimeField;
 use ark_serialize::*;
-use crypto_primitives_voproof::sponge::CryptographicSponge;
+use ark_crypto_primitives::sponge::CryptographicSponge;
 
 /// Collection of structs/objects that the Verifier will use in order to
 /// de/serialize data needed for Circuit proof verification.
@@ -48,12 +48,12 @@ where
 {
     /// Creates a new `VerifierData` from a [`VerifierKey`] and the public
     /// input of the circuit that it represents.
-    pub fn new(key: VerifierKey<F, PC>, pi: PublicInputs<F>) -> Self {
+    pub fn new(key: VerifierKey<F, PC, S>, pi: PublicInputs<F>) -> Self {
         Self { key, pi }
     }
 
     /// Returns a reference to the contained [`VerifierKey`].
-    pub fn key(&self) -> &VerifierKey<F, PC> {
+    pub fn key(&self) -> &VerifierKey<F, PC, S> {
         &self.key
     }
 
@@ -170,7 +170,7 @@ where
 /// let generator: GroupAffine<JubJubParameters> = GroupAffine::new(x, y);
 /// let point_f_pi: GroupAffine<JubJubParameters> = AffineCurve::mul(
 ///     &generator,
-///     JubJubScalar::from(2u64).into_repr(),
+///     JubJubScalar::from(2u64).into_bigint(),
 /// )
 /// .into_affine();
 /// // Prover POV
@@ -221,13 +221,14 @@ where
     /// with the [`ProverKey`], [`VerifierKey`] and a vector of the intended
     /// positions for public inputs and the circuit size.
     #[allow(clippy::type_complexity)]
-    fn compile<PC>(
+    fn compile<PC, S>(
         &mut self,
         u_params: &PC::UniversalParams,
-    ) -> Result<(ProverKey<F>, (VerifierKey<F, PC>, Vec<usize>)), Error>
+    ) -> Result<(ProverKey<F>, (VerifierKey<F, PC, S>, Vec<usize>)), Error>
     where
         F: PrimeField,
-        PC: HomomorphicCommitment<F>,
+        PC: HomomorphicCommitment<F, S>,
+        S: CryptographicSponge,
     {
         // Setup PublicParams
         let circuit_size = self.padded_circuit_size();
@@ -258,16 +259,17 @@ where
     /// Generates a proof using the provided [`ProverKey`] and
     /// [`ark_poly_commit::PCUniversalParams`]. Returns a
     /// [`crate::proof_system::Proof`] and the [`PublicInputs`].
-    fn gen_proof<PC>(
+    fn gen_proof<PC, S>(
         &mut self,
         u_params: &PC::UniversalParams,
         prover_key: ProverKey<F>,
         transcript_init: &'static [u8],
-    ) -> Result<(Proof<F, PC>, PublicInputs<F>), Error>
+    ) -> Result<(Proof<F, PC, S>, PublicInputs<F>), Error>
     where
         F: PrimeField,
         P: TEModelParameters<BaseField = F>,
-        PC: HomomorphicCommitment<F>,
+        PC: HomomorphicCommitment<F, S>,
+        S: CryptographicSponge,
     {
         let circuit_size = self.padded_circuit_size();
         let (ck, _) = PC::trim(u_params, circuit_size, 0, None).map_err(to_pc_error::<F, PC>)?;
@@ -288,17 +290,18 @@ where
 
 /// Verifies a proof using the provided `CircuitInputs` & `VerifierKey`
 /// instances.
-pub fn verify_proof<F, P, PC>(
+pub fn verify_proof<F, P, PC, S>(
     u_params: &PC::UniversalParams,
-    plonk_verifier_key: VerifierKey<F, PC>,
-    proof: &Proof<F, PC>,
+    plonk_verifier_key: VerifierKey<F, PC, S>,
+    proof: &Proof<F, PC, S>,
     public_inputs: &PublicInputs<F>,
     transcript_init: &'static [u8],
 ) -> Result<(), Error>
 where
     F: PrimeField,
     P: TEModelParameters<BaseField = F>,
-    PC: HomomorphicCommitment<F>,
+    PC: HomomorphicCommitment<F, S>,
+    S: CryptographicSponge,
 {
     let mut verifier: Verifier<F, P, PC> = Verifier::new(transcript_init);
     let padded_circuit_size = plonk_verifier_key.padded_circuit_size();
@@ -382,7 +385,7 @@ mod test {
     where
         F: PrimeField,
         P: TEModelParameters<BaseField = F>,
-        PC: HomomorphicCommitment<F>,
+        PC: HomomorphicCommitment<F, S>,
         VerifierData<F, PC>: PartialEq,
     {
         // Generate CRS
@@ -396,7 +399,7 @@ mod test {
         let (x, y) = P::AFFINE_GENERATOR_COEFFS;
         let generator: GroupAffine<P> = GroupAffine::new(x, y);
         let point_f_pi: GroupAffine<P> =
-            AffineCurve::mul(&generator, P::ScalarField::from(2u64).into_repr()).into_affine();
+            AffineCurve::mul(&generator, P::ScalarField::from(2u64).into_bigint()).into_affine();
 
         // Prover POV
         let (proof, pi) = {

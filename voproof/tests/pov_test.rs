@@ -14,15 +14,15 @@ use voproof::error::Error;
 use voproof::kzg::UniversalParams;
 use voproof::snarks::{voproof_pov::*, voproof_pov_prover_efficient::*, SNARK};
 use voproof::tools::{fmt_field, to_field, try_to_int};
-use voproof::{fmt_ff_vector, max, generator_of};
+use voproof::{fmt_ff_vector, generator_of, max};
 mod utils;
 use utils::mt_circuit::MerkleTreeCircuit;
 use utils::test_circuit::TestCircuit;
 
 macro_rules! define_run_pov_example {
-  ($func_name:ident, $snark:ident) => (
+  ($func_name:ident, $snark:ident) => {
     fn $func_name<E: PairingEngine>() -> Result<(), Error> {
-      let mut circ = FanInTwoCircuit::<E::Fr>::new();
+      let mut circ = FanInTwoCircuit::<E::ScalarField>::new();
       let a = circ.add_global_input_variable().unwrap();
       let b = circ.add_global_input_variable().unwrap();
       let c = circ.add_global_input_variable().unwrap();
@@ -31,16 +31,16 @@ macro_rules! define_run_pov_example {
       let f = circ.mul_vars(&d, &e);
       let g = circ.add_vars(&a, &d);
       let h = circ.mul_vars(&g, &f);
-      let o = circ.const_var(to_field::<E::Fr>(10));
+      let o = circ.const_var(to_field::<E::ScalarField>(10));
       let p = circ.mul_vars(&h, &o);
       circ.mark_as_complete().unwrap();
       circ.mark_variable_as_public(&a).unwrap();
       circ.mark_variable_as_public(&p).unwrap();
       circ
         .evaluate(&vec![
-          to_field::<E::Fr>(1),
-          to_field::<E::Fr>(2),
-          to_field::<E::Fr>(3),
+          to_field::<E::ScalarField>(1),
+          to_field::<E::ScalarField>(2),
+          to_field::<E::ScalarField>(3),
         ])
         .unwrap();
       let ins = POVInstance {
@@ -79,15 +79,15 @@ macro_rules! define_run_pov_example {
       let mut proof = $snark::prove(&pk, &ins, &wit)?;
       $snark::verify(&vk, &ins, &proof)?;
       println!("Proof size: {}", proof.serialized_size());
-      proof.y = E::Fr::zero();
+      proof.y = E::ScalarField::zero();
       let result = $snark::verify(&vk, &ins, &proof);
       assert!(result.is_err());
-      wit.witness.0[0] = E::Fr::zero();
+      wit.witness.0[0] = E::ScalarField::zero();
       let result = $snark::prove(&pk, &ins, &wit);
       assert!(result.is_err());
       Ok(())
     }
-  )
+  };
 }
 
 define_run_pov_example!(run_pov_example, VOProofPOV);
@@ -99,14 +99,14 @@ macro_rules! define_test_simple_pov {
     fn $func_name() {
       assert!($exec_name::<ark_bls12_381::Bls12_381>().is_ok());
     }
-  }
+  };
 }
 
 define_test_simple_pov!(test_simple_pov, run_pov_example);
 define_test_simple_pov!(test_simple_pov_pe, run_pov_pe_example);
 
 fn run_pov_from_r1cs<E: PairingEngine>(scale: usize) {
-  let c = TestCircuit::<E::Fr> {
+  let c = TestCircuit::<E::ScalarField> {
     a: Some(generator_of!(E)),
     b: Some(generator_of!(E) * generator_of!(E)),
     num_variables: scale,
@@ -115,7 +115,7 @@ fn run_pov_from_r1cs<E: PairingEngine>(scale: usize) {
   let x = vec![c.a.unwrap(), c.b.unwrap(), (c.a.unwrap() * c.b.unwrap())];
   let w = vec![c.a.unwrap(); scale - 3];
 
-  let cs = ArkR1CS::<E::Fr>::new_ref();
+  let cs = ArkR1CS::<E::ScalarField>::new_ref();
   c.generate_constraints(cs.clone()).unwrap();
   let r1cs = R1CS::from(cs.into_inner().unwrap());
   println!("R1CS num rows: {}", r1cs.nrows);
@@ -148,7 +148,7 @@ fn run_pov_from_r1cs<E: PairingEngine>(scale: usize) {
   circ.evaluate(&input).unwrap();
   let output = circ.get_output().unwrap();
   assert!(output.iter().all(|o| o.is_zero()));
-  // assert_eq!(output, vec![E::Fr::zero(); r1cs.nrows as usize]);
+  // assert_eq!(output, vec![E::ScalarField::zero(); r1cs.nrows as usize]);
 
   let (pov, instance, witness) = pov_triple_from_r1cs_triple(r1cs, instance, witness);
   assert!(pov.satisfy_gate_logics(&witness));
@@ -167,7 +167,7 @@ macro_rules! define_run_pov_mt {
       scale: usize,
     ) -> Result<(), Error> {
       let c = MerkleTreeCircuit { height: scale };
-      let cs = ArkR1CS::<E::Fr>::new_ref();
+      let cs = ArkR1CS::<E::ScalarField>::new_ref();
       c.generate_constraints(cs.clone()).unwrap();
       let cs = cs.into_inner().unwrap();
       let x = cs
@@ -175,7 +175,7 @@ macro_rules! define_run_pov_mt {
         .iter()
         .skip(1)
         .map(|x| *x)
-        .collect::<Vec<E::Fr>>();
+        .collect::<Vec<E::ScalarField>>();
       let w = cs.witness_assignment.clone();
       let r1cs = R1CS::from(cs);
       let instance = R1CSInstance { instance: x };
@@ -207,7 +207,7 @@ macro_rules! define_run_pov_mt {
         .collect();
       circ.evaluate(&input).unwrap();
       let output = circ.get_output().unwrap();
-      assert_eq!(output, vec![E::Fr::zero(); r1cs.nrows as usize]);
+      assert_eq!(output, vec![E::ScalarField::zero(); r1cs.nrows as usize]);
 
       let (pov, instance, witness) = pov_triple_from_r1cs_triple(r1cs, instance, witness);
       assert!(pov.satisfy_gate_logics(&witness));
@@ -257,7 +257,7 @@ macro_rules! define_run_pov_mt {
       println!("Proof size: {}", proof.serialized_size());
       ret
     }
-  }
+  };
 }
 
 define_run_pov_mt!(run_pov_mt, VOProofPOV);

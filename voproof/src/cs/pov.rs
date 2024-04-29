@@ -178,7 +178,7 @@ mod tests {
   }
 
   fn _test_satisfy<E: PairingEngine>() {
-    let mut circ = FanInTwoCircuit::<E::Fr>::new();
+    let mut circ = FanInTwoCircuit::<E::ScalarField>::new();
     let a = circ.add_global_input_variable().unwrap();
     let b = circ.add_global_input_variable().unwrap();
     let c = circ.add_global_input_variable().unwrap();
@@ -187,16 +187,16 @@ mod tests {
     let f = circ.mul_vars(&d, &e);
     let g = circ.add_vars(&a, &d);
     let h = circ.mul_vars(&g, &f);
-    let o = circ.const_var(to_field::<E::Fr>(10));
+    let o = circ.const_var(to_field::<E::ScalarField>(10));
     let p = circ.mul_vars(&h, &o);
     circ.mark_as_complete().unwrap();
     circ.mark_variable_as_public(&a).unwrap();
     circ.mark_variable_as_public(&p).unwrap();
     circ
       .evaluate(&vec![
-        to_field::<E::Fr>(1),
-        to_field::<E::Fr>(2),
-        to_field::<E::Fr>(3),
+        to_field::<E::ScalarField>(1),
+        to_field::<E::ScalarField>(2),
+        to_field::<E::ScalarField>(3),
       ])
       .unwrap();
     let ins = POVInstance {

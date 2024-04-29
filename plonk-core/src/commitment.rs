@@ -1,40 +1,46 @@
 //! Useful commitment stuff
-use ark_ec::{msm::VariableBaseMSM, AffineCurve, PairingEngine};
+use ark_ec::{
+    pairing::Pairing as PairingEngine, scalar_mul::variable_base::VariableBaseMSM,
+    AffineRepr as AffineCurve,
+};
 use ark_ff::{Field, PrimeField};
 use ark_poly::univariate::DensePolynomial;
 use ark_poly_commit::{sonic_pc::SonicKZG10, PolynomialCommitment};
-use crypto_primitives_voproof::sponge::CryptographicSponge;
+use ark_crypto_primitives::sponge::CryptographicSponge;
 
 /// A homomorphic polynomial commitment
-pub trait HomomorphicCommitment<F, S: CryptographicSponge>:
+pub trait HomomorphicCommitment<F, S>:
     PolynomialCommitment<F, DensePolynomial<F>, S>
 where
     F: PrimeField,
     Self::VerifierKey: core::fmt::Debug,
+    S: CryptographicSponge,
 {
     /// Combine a linear combination of homomorphic commitments
     fn multi_scalar_mul(commitments: &[Self::Commitment], scalars: &[F]) -> Self::Commitment;
 }
 
 /// The Default KZG-style commitment scheme
-pub type KZG10<E> = SonicKZG10<E, DensePolynomial<<E as PairingEngine>::Fr>>;
+pub type KZG10<E, S> = SonicKZG10<E, DensePolynomial<<E as PairingEngine>::ScalarField>, S>;
 /// A single KZG10 commitment
-pub type KZG10Commitment<E> = <KZG10<E> as PolynomialCommitment<
-    <E as PairingEngine>::Fr,
-    DensePolynomial<<E as PairingEngine>::Fr>,
+pub type KZG10Commitment<E, S> = <KZG10<E, S> as PolynomialCommitment<
+    <E as PairingEngine>::ScalarField,
+    DensePolynomial<<E as PairingEngine>::ScalarField>,
+    S,
 >>::Commitment;
 
-impl<E> HomomorphicCommitment<E::Fr> for KZG10<E>
+impl<E, S> HomomorphicCommitment<E::ScalarField, S> for KZG10<E, S>
 where
     E: PairingEngine,
+    S: CryptographicSponge,
 {
     fn multi_scalar_mul(
-        commitments: &[KZG10Commitment<E>],
-        scalars: &[E::Fr],
-    ) -> KZG10Commitment<E> {
+        commitments: &[KZG10Commitment<E, S>],
+        scalars: &[E::ScalarField],
+    ) -> KZG10Commitment<E, S> {
         let scalars_repr = scalars
             .iter()
-            .map(<E::Fr as PrimeField>::into_repr)
+            .map(<E::ScalarField as PrimeField>::into_bigint)
             .collect::<Vec<_>>();
 
         let points_repr = commitments.iter().map(|c| c.0).collect::<Vec<_>>();
@@ -46,36 +52,38 @@ where
 }
 
 /// Shortened type for Inner Product Argument polynomial commitment schemes
-pub type IPA<G, D> = ark_poly_commit::ipa_pc::InnerProductArgPC<
+pub type IPA<G, D, S> = ark_poly_commit::ipa_pc::InnerProductArgPC<
     G,
     D,
-    DensePolynomial<<G as ark_ec::AffineCurve>::ScalarField>,
+    DensePolynomial<<G as ark_ec::AffineRepr>::ScalarField>,
+    S,
 >;
 /// Shortened type for an Inner Product Argument polynomial commitment
-pub type IPACommitment<G, D> = <IPA<G, D> as PolynomialCommitment<
+pub type IPACommitment<G, D, S> = <IPA<G, D, S> as PolynomialCommitment<
     <G as AffineCurve>::ScalarField,
     DensePolynomial<<G as AffineCurve>::ScalarField>,
+    S,
 >>::Commitment;
 
 use blake2::digest::Digest;
-use crypto_primitives_voproof::sponge::CryptographicSponge;
-impl<G, D> HomomorphicCommitment<<G as ark_ec::AffineCurve>::ScalarField> for IPA<G, D>
+impl<G, D, S> HomomorphicCommitment<<G as ark_ec::AffineRepr>::ScalarField, S> for IPA<G, D, S>
 where
     G: AffineCurve,
     D: Digest,
+    S: CryptographicSponge,
 {
     fn multi_scalar_mul(
-        commitments: &[IPACommitment<G, D>],
-        scalars: &[<G as ark_ec::AffineCurve>::ScalarField],
-    ) -> IPACommitment<G, D> {
+        commitments: &[IPACommitment<G, D, S>],
+        scalars: &[<G as ark_ec::AffineRepr>::ScalarField],
+    ) -> IPACommitment<G, D, S> {
         let scalars_repr = scalars
             .iter()
-            .map(<G as ark_ec::AffineCurve>::ScalarField::into_repr)
+            .map(<G as ark_ec::AffineRepr>::ScalarField::into_bigint)
             .collect::<Vec<_>>();
 
         let points_repr = commitments.iter().map(|c| c.comm).collect::<Vec<_>>();
 
-        IPACommitment::<G, D> {
+        IPACommitment::<G, D, S> {
             comm: VariableBaseMSM::multi_scalar_mul(&points_repr, &scalars_repr).into(),
             shifted_comm: None, // TODO: support degree bounds?
         }
@@ -85,14 +93,15 @@ where
 /// Computes a linear combination of the polynomial evaluations and polynomial
 /// commitments provided a challenge.
 // TODO: complete doc & use util::lc for eval combination
-pub fn linear_combination<F, H>(
+pub fn linear_combination<F, H, S>(
     evals: &[F],
     commitments: &[H::Commitment],
     challenge: F,
 ) -> (H::Commitment, F)
 where
     F: PrimeField,
-    H: HomomorphicCommitment<F>,
+    H: HomomorphicCommitment<F, S>,
+    S: CryptographicSponge,
 {
     assert_eq!(evals.len(), commitments.len());
     let powers = crate::util::powers_of(challenge)

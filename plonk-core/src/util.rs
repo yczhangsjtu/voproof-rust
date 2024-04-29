@@ -86,7 +86,7 @@ where
     }
 }
 
-/// Get a pairing friendly curve scalar `E::Fr` from a scalar of the embedded
+/// Get a pairing friendly curve scalar `E::ScalarField` from a scalar of the embedded
 /// curve. Panics if the embedded scalar is greater than the modulus of the
 /// pairing firendly curve scalar field
 #[allow(dead_code)]
@@ -95,7 +95,7 @@ where
     F: PrimeField,
     P: TEModelParameters<BaseField = F>,
 {
-    let scalar_repr = embedded_scalar.into_repr();
+    let scalar_repr = embedded_scalar.into_bigint();
     let modulus = <F as PrimeField>::MODULUS;
     if modulus.num_bits() >= scalar_repr.num_bits() {
         let s = <<F as PrimeField>::BigInt as BigInteger>::from_bits_le(&scalar_repr.to_bits_le());
@@ -124,7 +124,7 @@ where
     F: PrimeField,
     P: TEModelParameters<BaseField = F>,
 {
-    let scalar_repr = pfc_scalar.into_repr();
+    let scalar_repr = pfc_scalar.into_bigint();
     let modulus = <P::ScalarField as PrimeField>::MODULUS;
     if modulus.num_bits() >= scalar_repr.num_bits() {
         let s = <<P::ScalarField as PrimeField>::BigInt as BigInteger>::from_bits_le(

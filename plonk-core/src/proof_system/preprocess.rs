@@ -14,7 +14,7 @@ use crate::{
     lookup::PreprocessedLookupTable,
     proof_system::{widget, ProverKey},
 };
-use ark_ec::TEModelParameters;
+use ark_ec::twisted_edwards::TECurveConfig as TEModelParameters;
 use ark_ff::{FftField, PrimeField};
 use ark_poly::{
     polynomial::univariate::DensePolynomial, EvaluationDomain, Evaluations,
@@ -22,6 +22,7 @@ use ark_poly::{
 };
 use core::marker::PhantomData;
 use merlin::Transcript;
+use ark_crypto_primitives::sponge::CryptographicSponge;
 
 /// Struct that contains all of the selector and permutation [`Polynomial`]s in
 /// PLONK.
@@ -159,76 +160,51 @@ where
     /// Although the prover does not need the verification key, he must compute
     /// the commitments in order to seed the transcript, allowing both the
     /// prover and verifier to have the same view
-    pub fn preprocess_prover<PC>(
+    pub fn preprocess_prover<PC, S>(
         &mut self,
         commit_key: &PC::CommitterKey,
         transcript: &mut Transcript,
         _pc: PhantomData<PC>,
     ) -> Result<ProverKey<F>, Error>
     where
-        PC: HomomorphicCommitment<F>,
+        PC: HomomorphicCommitment<F, S>,
+        S: CryptographicSponge,
     {
         let (_, selectors, domain, preprocessed_table) =
             self.preprocess_shared(commit_key, transcript, _pc)?;
 
-        let domain_8n =
-            GeneralEvaluationDomain::new(8 * domain.size()).ok_or(Error::InvalidEvalDomainSize {
+        let domain_8n = GeneralEvaluationDomain::new(8 * domain.size()).ok_or(
+            Error::InvalidEvalDomainSize {
                 log_size_of_group: (8 * domain.size()).trailing_zeros(),
-                adicity:
-                    <<F as FftField>::FftParams as ark_ff::FftParameters>::TWO_ADICITY,
-            })?;
-        let q_m_eval_8n = Evaluations::from_vec_and_domain(
-            domain_8n.coset_fft(&selectors.q_m),
-            domain_8n,
-        );
-        let q_l_eval_8n = Evaluations::from_vec_and_domain(
-            domain_8n.coset_fft(&selectors.q_l),
-            domain_8n,
-        );
-        let q_r_eval_8n = Evaluations::from_vec_and_domain(
-            domain_8n.coset_fft(&selectors.q_r),
-            domain_8n,
-        );
-        let q_o_eval_8n = Evaluations::from_vec_and_domain(
-            domain_8n.coset_fft(&selectors.q_o),
-            domain_8n,
-        );
-        let q_c_eval_8n = Evaluations::from_vec_and_domain(
-            domain_8n.coset_fft(&selectors.q_c),
-            domain_8n,
-        );
-        let q_4_eval_8n = Evaluations::from_vec_and_domain(
-            domain_8n.coset_fft(&selectors.q_4),
-            domain_8n,
-        );
-        let q_hash_left_eval_8n = Evaluations::from_vec_and_domain(
-            domain_8n.coset_fft(&selectors.q_hl),
-            domain_8n,
-        );
-        let q_hash_right_eval_8n = Evaluations::from_vec_and_domain(
-            domain_8n.coset_fft(&selectors.q_hr),
-            domain_8n,
-        );
-        let q_hash_4_eval_8n = Evaluations::from_vec_and_domain(
-            domain_8n.coset_fft(&selectors.q_h4),
-            domain_8n,
-        );
-        let q_arith_eval_8n = Evaluations::from_vec_and_domain(
-            domain_8n.coset_fft(&selectors.q_arith),
-            domain_8n,
-        );
-        let q_range_eval_8n = Evaluations::from_vec_and_domain(
-            domain_8n.coset_fft(&selectors.q_range),
-            domain_8n,
-        );
-        let q_logic_eval_8n = Evaluations::from_vec_and_domain(
-            domain_8n.coset_fft(&selectors.q_logic),
-            domain_8n,
-        );
-        let q_lookup_eval_8n = Evaluations::from_vec_and_domain(
-            domain_8n.coset_fft(&selectors.q_lookup),
-            domain_8n,
-        );
+                adicity: <F as FftField>::TWO_ADICITY,
+            },
+        )?;
+        let q_m_eval_8n =
+            Evaluations::from_vec_and_domain(domain_8n.coset_fft(&selectors.q_m), domain_8n);
+        let q_l_eval_8n =
+            Evaluations::from_vec_and_domain(domain_8n.coset_fft(&selectors.q_l), domain_8n);
+        let q_r_eval_8n =
+            Evaluations::from_vec_and_domain(domain_8n.coset_fft(&selectors.q_r), domain_8n);
+        let q_o_eval_8n =
+            Evaluations::from_vec_and_domain(domain_8n.coset_fft(&selectors.q_o), domain_8n);
+        let q_c_eval_8n =
+            Evaluations::from_vec_and_domain(domain_8n.coset_fft(&selectors.q_c), domain_8n);
+        let q_4_eval_8n =
+            Evaluations::from_vec_and_domain(domain_8n.coset_fft(&selectors.q_4), domain_8n);
+        let q_hash_left_eval_8n =
+            Evaluations::from_vec_and_domain(domain_8n.coset_fft(&selectors.q_hl), domain_8n);
+        let q_hash_right_eval_8n =
+            Evaluations::from_vec_and_domain(domain_8n.coset_fft(&selectors.q_hr), domain_8n);
+        let q_hash_4_eval_8n =
+            Evaluations::from_vec_and_domain(domain_8n.coset_fft(&selectors.q_h4), domain_8n);
+        let q_arith_eval_8n =
+            Evaluations::from_vec_and_domain(domain_8n.coset_fft(&selectors.q_arith), domain_8n);
+        let q_range_eval_8n =
+            Evaluations::from_vec_and_domain(domain_8n.coset_fft(&selectors.q_range), domain_8n);
+        let q_logic_eval_8n =
+            Evaluations::from_vec_and_domain(domain_8n.coset_fft(&selectors.q_logic), domain_8n);
+        let q_lookup_eval_8n =
+            Evaluations::from_vec_and_domain(domain_8n.coset_fft(&selectors.q_lookup), domain_8n);
         let q_fixed_group_add_eval_8n = Evaluations::from_vec_and_domain(
             domain_8n.coset_fft(&selectors.q_fixed_group_add),
             domain_8n,
@@ -237,18 +213,14 @@ where
             domain_8n.coset_fft(&selectors.q_variable_group_add),
             domain_8n,
         );
-        let left_sigma_eval_8n = Evaluations::from_vec_and_domain(
-            domain_8n.coset_fft(&selectors.left_sigma),
-            domain_8n,
-        );
+        let left_sigma_eval_8n =
+            Evaluations::from_vec_and_domain(domain_8n.coset_fft(&selectors.left_sigma), domain_8n);
         let right_sigma_eval_8n = Evaluations::from_vec_and_domain(
             domain_8n.coset_fft(&selectors.right_sigma),
             domain_8n,
         );
-        let out_sigma_eval_8n = Evaluations::from_vec_and_domain(
-            domain_8n.coset_fft(&selectors.out_sigma),
-            domain_8n,
-        );
+        let out_sigma_eval_8n =
+            Evaluations::from_vec_and_domain(domain_8n.coset_fft(&selectors.out_sigma), domain_8n);
         let fourth_sigma_eval_8n = Evaluations::from_vec_and_domain(
             domain_8n.coset_fft(&selectors.fourth_sigma),
             domain_8n,
@@ -260,8 +232,7 @@ where
         );
 
         // Compute 8n evaluations for X^n -1
-        let v_h_coset_8n =
-            compute_vanishing_poly_over_coset(domain_8n, domain.size() as u64);
+        let v_h_coset_8n = compute_vanishing_poly_over_coset(domain_8n, domain.size() as u64);
 
         Ok(ProverKey::from_polynomials_and_evals(
             domain.size(),
@@ -296,17 +267,17 @@ where
     /// The verifier only requires the commitments in order to verify a
     /// [`Proof`](super::Proof) We can therefore speed up preprocessing for the
     /// verifier by skipping the FFTs needed to compute the 8n evaluations.
-    pub fn preprocess_verifier<PC>(
+    pub fn preprocess_verifier<PC, S>(
         &mut self,
         commit_key: &PC::CommitterKey,
         transcript: &mut Transcript,
         _pc: PhantomData<PC>,
-    ) -> Result<widget::VerifierKey<F, PC>, Error>
+    ) -> Result<widget::VerifierKey<F, PC, S>, Error>
     where
-        PC: HomomorphicCommitment<F>,
+        PC: HomomorphicCommitment<F, S>,
+        S: CryptographicSponge,
     {
-        let (verifier_key, _, _, _) =
-            self.preprocess_shared(commit_key, transcript, _pc)?;
+        let (verifier_key, _, _, _) = self.preprocess_shared(commit_key, transcript, _pc)?;
         Ok(verifier_key)
     }
 
@@ -315,28 +286,30 @@ where
     /// polynomials in order to commit to them and have the same transcript
     /// view.
     #[allow(clippy::type_complexity)] // FIXME: Add struct for prover side (last two tuple items).
-    fn preprocess_shared<PC>(
+    fn preprocess_shared<PC, S>(
         &mut self,
         commit_key: &PC::CommitterKey,
         transcript: &mut Transcript,
         _pc: PhantomData<PC>,
     ) -> Result<
         (
-            widget::VerifierKey<F, PC>,
+            widget::VerifierKey<F, PC, S>,
             SelectorPolynomials<F>,
             GeneralEvaluationDomain<F>,
-            PreprocessedLookupTable<F, PC>,
+            PreprocessedLookupTable<F, PC, S>,
         ),
         Error,
     >
     where
-        PC: HomomorphicCommitment<F>,
+        PC: HomomorphicCommitment<F, S>,
+        S: CryptographicSponge,
     {
-        let domain = GeneralEvaluationDomain::new(self.circuit_bound()).ok_or(Error::InvalidEvalDomainSize {
-            log_size_of_group: (self.circuit_bound()).trailing_zeros(),
-            adicity:
-                <<F as FftField>::FftParams as ark_ff::FftParameters>::TWO_ADICITY,
-        })?;
+        let domain = GeneralEvaluationDomain::new(self.circuit_bound()).ok_or(
+            Error::InvalidEvalDomainSize {
+                log_size_of_group: (self.circuit_bound()).trailing_zeros(),
+                adicity: <F as FftField>::TWO_ADICITY,
+            },
+        )?;
 
         let preprocessed_table = PreprocessedLookupTable::<F, PC>::preprocess(
             &self.lookup_table,
@@ -391,22 +364,14 @@ where
             DensePolynomial::from_coefficients_vec(domain.ifft(&self.q_lookup));
 
         let q_fixed_group_add_poly: DensePolynomial<F> =
-            DensePolynomial::from_coefficients_vec(
-                domain.ifft(&self.q_fixed_group_add),
-            );
+            DensePolynomial::from_coefficients_vec(domain.ifft(&self.q_fixed_group_add));
 
         let q_variable_group_add_poly: DensePolynomial<F> =
-            DensePolynomial::from_coefficients_vec(
-                domain.ifft(&self.q_variable_group_add),
-            );
+            DensePolynomial::from_coefficients_vec(domain.ifft(&self.q_variable_group_add));
 
         // 2. Compute the sigma polynomials
-        let (
-            left_sigma_poly,
-            right_sigma_poly,
-            out_sigma_poly,
-            fourth_sigma_poly,
-        ) = self.perm.compute_sigma_polynomials(self.n, &domain);
+        let (left_sigma_poly, right_sigma_poly, out_sigma_poly, fourth_sigma_poly) =
+            self.perm.compute_sigma_polynomials(self.n, &domain);
 
         let (commitments, _) = PC::commit(
             commit_key,
@@ -438,16 +403,16 @@ where
 
         let verifier_key = widget::VerifierKey::from_polynomial_commitments(
             self.n,
-            commitments[0].commitment().clone(), // q_m
-            commitments[1].commitment().clone(), // q_l
-            commitments[2].commitment().clone(), // q_r
-            commitments[3].commitment().clone(), // q_o
-            commitments[4].commitment().clone(), // q_4
-            commitments[5].commitment().clone(), // q_c
-            commitments[6].commitment().clone(), // q_hl
-            commitments[7].commitment().clone(), // q_hr
-            commitments[8].commitment().clone(), // q_h4
-            commitments[9].commitment().clone(), // q_arith
+            commitments[0].commitment().clone(),  // q_m
+            commitments[1].commitment().clone(),  // q_l
+            commitments[2].commitment().clone(),  // q_r
+            commitments[3].commitment().clone(),  // q_o
+            commitments[4].commitment().clone(),  // q_4
+            commitments[5].commitment().clone(),  // q_c
+            commitments[6].commitment().clone(),  // q_hl
+            commitments[7].commitment().clone(),  // q_hr
+            commitments[8].commitment().clone(),  // q_h4
+            commitments[9].commitment().clone(),  // q_arith
             commitments[10].commitment().clone(), // q_range
             commitments[11].commitment().clone(), // q_logic
             commitments[12].commitment().clone(), // q_lookup
@@ -512,9 +477,7 @@ where
     let group_gen = domain.element(1);
     let coset_gen = F::multiplicative_generator().pow([poly_degree]);
     let v_h: Vec<_> = (0..domain.size())
-        .map(|i| {
-            (coset_gen * group_gen.pow([poly_degree * i as u64])) - F::one()
-        })
+        .map(|i| (coset_gen * group_gen.pow([poly_degree * i as u64])) - F::one())
         .collect();
     Evaluations::from_vec_and_domain(v_h, domain)
 }

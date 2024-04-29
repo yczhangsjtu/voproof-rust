@@ -61,7 +61,7 @@ where
         assert!(num_bits % 2 == 0);
 
         // Convert witness to bit representation and reverse
-        let bits = self.variables[&witness].into_repr().to_bits_le();
+        let bits = self.variables[&witness].into_bigint().to_bits_le();
 
         // For a width-4 program, one gate will contain 4 accumulators
         // Each accumulator proves that a single quad is a base-4 digit.
@@ -211,7 +211,7 @@ mod test {
     where
         F: PrimeField,
         P: TEModelParameters<BaseField = F>,
-        PC: HomomorphicCommitment<F>,
+        PC: HomomorphicCommitment<F, S>,
     {
         // Should fail as the number is not 32 bits
         let res = gadget_tester::<F, P, PC>(
@@ -248,7 +248,7 @@ mod test {
     where
         F: PrimeField,
         P: TEModelParameters<BaseField = F>,
-        PC: HomomorphicCommitment<F>,
+        PC: HomomorphicCommitment<F, S>,
     {
         // Should fail as the number we we need a even number of bits
         let _ok = gadget_tester::<F, P, PC>(

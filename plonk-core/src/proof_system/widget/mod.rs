@@ -23,8 +23,7 @@ use crate::{
 use ark_ff::PrimeField;
 use ark_poly::{univariate::DensePolynomial, Evaluations};
 use ark_serialize::*;
-use crypto_primitives_voproof::sponge::CryptographicSponge;
-
+use ark_crypto_primitives::sponge::CryptographicSponge;
 
 /// Set of values needed for a custom gate
 pub trait CustomValues<F>
@@ -105,14 +104,15 @@ where
     /// Extends `scalars` and `points` to build the linearisation commitment
     /// with the given instantiation of `evaluations` and
     /// `separation_challenge`.
-    fn extend_linearisation_commitment<PC>(
+    fn extend_linearisation_commitment<PC, S>(
         selector_commitment: &PC::Commitment,
         separation_challenge: F,
         evaluations: &ProofEvaluations<F>,
         scalars: &mut Vec<F>,
         points: &mut Vec<PC::Commitment>,
     ) where
-        PC: HomomorphicCommitment<F>,
+        PC: HomomorphicCommitment<F, S>,
+        S: CryptographicSponge,
     {
         let coefficient = Self::constraints(
             separation_challenge,
@@ -137,10 +137,10 @@ where
 #[derivative(
     Clone(bound = ""),
     Debug(
-        bound = "arithmetic::VerifierKey<F,PC>: core::fmt::Debug, PC::Commitment: core::fmt::Debug"
+        bound = "arithmetic::VerifierKey<F,PC,S>: core::fmt::Debug, PC::Commitment: core::fmt::Debug"
     ),
-    Eq(bound = "arithmetic::VerifierKey<F,PC>: Eq, PC::Commitment: Eq"),
-    PartialEq(bound = "arithmetic::VerifierKey<F,PC>: PartialEq, PC::Commitment: PartialEq")
+    Eq(bound = "arithmetic::VerifierKey<F,PC,S>: Eq, PC::Commitment: Eq"),
+    PartialEq(bound = "arithmetic::VerifierKey<F,PC,S>: PartialEq, PC::Commitment: PartialEq")
 )]
 pub struct VerifierKey<F, PC, S>
 where
@@ -173,10 +173,11 @@ where
     pub(crate) lookup: lookup::VerifierKey<F, PC, S>,
 }
 
-impl<F, PC> VerifierKey<F, PC>
+impl<F, PC, S> VerifierKey<F, PC, S>
 where
     F: PrimeField,
-    PC: HomomorphicCommitment<F>,
+    PC: HomomorphicCommitment<F, S>,
+    S: CryptographicSponge,
 {
     /// Constructs a [`VerifierKey`] from the widget VerifierKey's that are
     /// constructed based on the selector polynomial commitments and the
@@ -247,10 +248,11 @@ where
     }
 }
 
-impl<F, PC> VerifierKey<F, PC>
+impl<F, PC, S> VerifierKey<F, PC, S>
 where
     F: PrimeField,
-    PC: HomomorphicCommitment<F>,
+    PC: HomomorphicCommitment<F, S>,
+    S: CryptographicSponge,
 {
     /// Adds the circuit description to the transcript.
     pub(crate) fn seed_transcript<T>(&self, transcript: &mut T)
@@ -525,8 +527,8 @@ mod test {
     where
         F: PrimeField,
         P: TEModelParameters<BaseField = F>,
-        PC: HomomorphicCommitment<F>,
-        VerifierKey<F, PC>: PartialEq,
+        PC: HomomorphicCommitment<F, S>,
+        VerifierKey<F, PC, S>: PartialEq,
     {
         let n = 2usize.pow(5);
 
@@ -590,7 +592,7 @@ mod test {
             .serialize_unchecked(&mut verifier_key_bytes)
             .unwrap();
 
-        let obtained_vk: VerifierKey<F, PC> =
+        let obtained_vk: VerifierKey<F, PC, S> =
             VerifierKey::deserialize_unchecked(verifier_key_bytes.as_slice()).unwrap();
 
         assert!(verifier_key == obtained_vk);

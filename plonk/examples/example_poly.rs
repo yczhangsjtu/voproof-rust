@@ -9,7 +9,7 @@
 //! PLONK Example
 
 use ark_bls12_381::{Bls12_381, Fr as BlsScalar};
-use ark_ec::TEModelParameters;
+use ark_ec::twisted_edwards::TECurveConfig as TEModelParameters;
 use ark_ed_on_bls12_381::{
     EdwardsParameters as JubJubParameters, Fr as JubJubScalar,
 };

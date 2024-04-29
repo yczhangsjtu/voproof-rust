@@ -54,14 +54,14 @@ where
         let mut right_quad: u8;
         // Get vars as bits and reverse them to get the Little Endian repr.
         let a_bits: Vec<_> = self.variables[&a]
-            .into_repr()
+            .into_bigint()
             .to_bits_be()
             .iter()
             .skip(256 - num_bits)
             .map(|bit| *bit as u8)
             .collect();
         let b_bits: Vec<_> = self.variables[&b]
-            .into_repr()
+            .into_bigint()
             .to_bits_be()
             .iter()
             .skip(256 - num_bits)
@@ -295,10 +295,10 @@ where
         // slower just for the check. We should think about it.
 
         // assert_eq!(
-        //     self.variables[&a].into_repr()
+        //     self.variables[&a].into_bigint()
         //         & (F::from(2u64).pow(&[(num_bits) as u64, 0, 0, 0])
         //             - F::one())
-        //         .into_repr(),
+        //         .into_bigint(),
         //     self.variables[&self.w_l[self.n - 1]]
         // );
         // assert_eq!(
@@ -351,7 +351,7 @@ mod test {
     where
         F: PrimeField,
         P: TEModelParameters<BaseField = F>,
-        PC: HomomorphicCommitment<F>,
+        PC: HomomorphicCommitment<F, S>,
     {
         // Should pass since the XOR result is correct and the bit-num is even.
         let res = gadget_tester::<F, P, PC>(
@@ -411,7 +411,7 @@ mod test {
     where
         F: PrimeField,
         P: TEModelParameters<BaseField = F>,
-        PC: HomomorphicCommitment<F>,
+        PC: HomomorphicCommitment<F, S>,
     {
         // Should fail since the bit-num is odd.
         let _ = gadget_tester::<F, P, PC>(

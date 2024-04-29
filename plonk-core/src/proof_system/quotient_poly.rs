@@ -14,11 +14,10 @@ use crate::{
         ProverKey,
     },
 };
-use ark_ec::TEModelParameters;
+use ark_ec::twisted_edwards::TECurveConfig as TEModelParameters;
 use ark_ff::{FftField, PrimeField};
 use ark_poly::{
-    univariate::DensePolynomial, EvaluationDomain, GeneralEvaluationDomain,
-    UVPolynomial,
+    univariate::DensePolynomial, EvaluationDomain, GeneralEvaluationDomain, UVPolynomial,
 };
 
 use super::{
@@ -61,12 +60,12 @@ where
     F: PrimeField,
     P: TEModelParameters<BaseField = F>,
 {
-    let domain_8n = GeneralEvaluationDomain::<F>::new(8 * domain.size())
-        .ok_or(Error::InvalidEvalDomainSize {
-        log_size_of_group: (8 * domain.size()).trailing_zeros(),
-        adicity:
-            <<F as FftField>::FftParams as ark_ff::FftParameters>::TWO_ADICITY,
-    })?;
+    let domain_8n = GeneralEvaluationDomain::<F>::new(8 * domain.size()).ok_or(
+        Error::InvalidEvalDomainSize {
+            log_size_of_group: (8 * domain.size()).trailing_zeros(),
+            adicity: <F as FftField>::TWO_ADICITY,
+        },
+    )?;
 
     let l1_poly = compute_first_lagrange_poly_scaled(domain, F::one());
     let l1_eval_8n = domain_8n.coset_fft(&l1_poly);
@@ -224,12 +223,12 @@ where
     F: PrimeField,
     P: TEModelParameters<BaseField = F>,
 {
-    let domain_8n = GeneralEvaluationDomain::<F>::new(8 * domain.size())
-        .ok_or(Error::InvalidEvalDomainSize {
-        log_size_of_group: (8 * domain.size()).trailing_zeros(),
-        adicity:
-            <<F as FftField>::FftParams as ark_ff::FftParameters>::TWO_ADICITY,
-    })?;
+    let domain_8n = GeneralEvaluationDomain::<F>::new(8 * domain.size()).ok_or(
+        Error::InvalidEvalDomainSize {
+            log_size_of_group: (8 * domain.size()).trailing_zeros(),
+            adicity: <F as FftField>::TWO_ADICITY,
+        },
+    )?;
     let pi_eval_8n = domain_8n.coset_fft(pi_poly);
 
     // TODO Eliminate contribution of unused gates
@@ -257,8 +256,7 @@ where
                 ],
             };
 
-            let arithmetic =
-                prover_key.arithmetic.compute_quotient_i(i, wit_vals);
+            let arithmetic = prover_key.arithmetic.compute_quotient_i(i, wit_vals);
 
             let range = Range::quotient_term(
                 prover_key.range_selector.1[i],
@@ -274,13 +272,12 @@ where
                 LogicVals::from_evaluations(&custom_vals),
             );
 
-            let fixed_base_scalar_mul =
-                FixedBaseScalarMul::<_, P>::quotient_term(
-                    prover_key.fixed_group_add_selector.1[i],
-                    fixed_base_challenge,
-                    wit_vals,
-                    FBSMVals::from_evaluations(&custom_vals),
-                );
+            let fixed_base_scalar_mul = FixedBaseScalarMul::<_, P>::quotient_term(
+                prover_key.fixed_group_add_selector.1[i],
+                fixed_base_challenge,
+                wit_vals,
+                FBSMVals::from_evaluations(&custom_vals),
+            );
 
             let curve_addition = CurveAddition::<_, P>::quotient_term(
                 prover_key.variable_group_add_selector.1[i],
@@ -289,11 +286,7 @@ where
                 CAVals::from_evaluations(&custom_vals),
             );
 
-            (arithmetic + pi_eval_8n[i])
-                + range
-                + logic
-                + fixed_base_scalar_mul
-                + curve_addition
+            (arithmetic + pi_eval_8n[i]) + range + logic + fixed_base_scalar_mul + curve_addition
         })
         .collect())
 }
@@ -315,14 +308,13 @@ fn compute_permutation_checks<F>(
 where
     F: PrimeField,
 {
-    let domain_8n = GeneralEvaluationDomain::<F>::new(8 * domain.size())
-        .ok_or(Error::InvalidEvalDomainSize {
-        log_size_of_group: (8 * domain.size()).trailing_zeros(),
-        adicity:
-            <<F as FftField>::FftParams as ark_ff::FftParameters>::TWO_ADICITY,
-    })?;
-    let l1_poly_alpha =
-        compute_first_lagrange_poly_scaled(domain, alpha.square());
+    let domain_8n = GeneralEvaluationDomain::<F>::new(8 * domain.size()).ok_or(
+        Error::InvalidEvalDomainSize {
+            log_size_of_group: (8 * domain.size()).trailing_zeros(),
+            adicity: <F as FftField>::TWO_ADICITY,
+        },
+    )?;
+    let l1_poly_alpha = compute_first_lagrange_poly_scaled(domain, alpha.square());
     let l1_alpha_sq_evals = domain_8n.coset_fft(&l1_poly_alpha.coeffs);
     Ok((0..domain_8n.size())
         .map(|i| {

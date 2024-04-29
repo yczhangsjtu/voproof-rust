@@ -1,7 +1,7 @@
 use ark_bls12_381::Bls12_381 as E;
 use ark_bls12_381::Fr;
 use ark_ec::PairingEngine;
-use ark_ff::fields::{FftField, FpParameters, PrimeField, Fp256};
+use ark_ff::fields::{FftField, Fp256, FpParameters, PrimeField};
 use ark_marlin::{Marlin, UniversalSRS};
 use ark_poly::univariate::DensePolynomial as P;
 use ark_poly_commit::sonic_pc::SonicKZG10;
@@ -14,29 +14,29 @@ use ark_relations::{
 };
 use ark_std::{end_timer, start_timer};
 use blake2::Blake2s;
-use voproof::tools::to_field;
 use voproof::max;
+use voproof::tools::to_field;
 mod utils;
-use utils::test_circuit::TestCircuit;
 use utils::mt_circuit::MerkleTreeCircuit;
+use utils::test_circuit::TestCircuit;
 
 fn gen_test_circ<E: PairingEngine>(
   scale: usize,
 ) -> (
-  UniversalSRS<E::Fr, SonicKZG10<E, P<E::Fr>>>,
-  TestCircuit<E::Fr>,
-  Vec<E::Fr>,
+  UniversalSRS<E::ScalarField, SonicKZG10<E, P<E::ScalarField>>>,
+  TestCircuit<E::ScalarField>,
+  Vec<E::ScalarField>,
 ) {
   let rng = &mut ark_std::test_rng();
-  let c = TestCircuit::<E::Fr> {
-    a: Some(to_field::<E::Fr>(3)),
-    b: Some(to_field::<E::Fr>(2)),
+  let c = TestCircuit::<E::ScalarField> {
+    a: Some(to_field::<E::ScalarField>(3)),
+    b: Some(to_field::<E::ScalarField>(2)),
     num_variables: scale,
     num_constraints: scale,
   };
   let x = vec![c.a.unwrap(), c.b.unwrap(), (c.a.unwrap() * c.b.unwrap())];
 
-  let cs = ArkR1CS::<E::Fr>::new_ref();
+  let cs = ArkR1CS::<E::ScalarField>::new_ref();
   c.generate_constraints(cs.clone()).unwrap();
   cs.inline_all_lcs();
   let matrices = cs.to_matrices().unwrap();
@@ -50,7 +50,10 @@ fn gen_test_circ<E: PairingEngine>(
     ),
   );
   (
-    Marlin::<E::Fr, SonicKZG10<E, P<E::Fr>>, Blake2s>::universal_setup(m, n, s, rng).unwrap(),
+    Marlin::<E::ScalarField, SonicKZG10<E, P<E::ScalarField>>, Blake2s>::universal_setup(
+      m, n, s, rng,
+    )
+    .unwrap(),
     c,
     x,
   )
@@ -59,25 +62,25 @@ fn gen_test_circ<E: PairingEngine>(
 fn gen_mt_circ<E: PairingEngine<Fr = Fp256<ark_bls12_381::FrParameters>>>(
   scale: usize,
 ) -> (
-  UniversalSRS<E::Fr, SonicKZG10<E, P<E::Fr>>>,
+  UniversalSRS<E::ScalarField, SonicKZG10<E, P<E::ScalarField>>>,
   MerkleTreeCircuit,
-  Vec<E::Fr>,
+  Vec<E::ScalarField>,
 ) {
   let rng = &mut ark_std::test_rng();
-  let c = MerkleTreeCircuit {
-    height: scale,
-  };
+  let c = MerkleTreeCircuit { height: scale };
 
-  let cs = ArkR1CS::<E::Fr>::new_ref();
+  let cs = ArkR1CS::<E::ScalarField>::new_ref();
   c.generate_constraints(cs.clone()).unwrap();
   cs.inline_all_lcs();
   let matrices = cs.to_matrices().unwrap();
-  let x = cs.into_inner().unwrap()
+  let x = cs
+    .into_inner()
+    .unwrap()
     .instance_assignment
     .iter()
     .skip(1)
     .map(|x| *x)
-    .collect::<Vec<E::Fr>>();
+    .collect::<Vec<E::ScalarField>>();
   let (m, n, s) = (
     matrices.num_constraints,
     matrices.num_instance_variables + matrices.num_witness_variables,
@@ -88,7 +91,10 @@ fn gen_mt_circ<E: PairingEngine<Fr = Fp256<ark_bls12_381::FrParameters>>>(
     ),
   );
   (
-    Marlin::<E::Fr, SonicKZG10<E, P<E::Fr>>, Blake2s>::universal_setup(m, n, s, rng).unwrap(),
+    Marlin::<E::ScalarField, SonicKZG10<E, P<E::ScalarField>>, Blake2s>::universal_setup(
+      m, n, s, rng,
+    )
+    .unwrap(),
     c,
     x,
   )

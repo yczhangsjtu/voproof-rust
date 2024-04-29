@@ -24,8 +24,8 @@ use crate::{
     transcript::TranscriptProtocol,
     util::EvaluationDomainExt,
 };
-use ark_ec::TEModelParameters;
-use crypto_primitives_voproof::sponge::CryptographicSponge;
+use ark_ec::twisted_edwards::TECurveConfig as TEModelParameters;
+use ark_crypto_primitives::sponge::CryptographicSponge;
 
 use ark_ff::{fields::batch_inversion, FftField, PrimeField};
 use ark_poly::{EvaluationDomain, GeneralEvaluationDomain};
@@ -45,10 +45,11 @@ use super::pi::PublicInputs;
     Eq(bound = "PC::Commitment: Eq, PC::Proof: Eq"),
     PartialEq(bound = "PC::Commitment: PartialEq, PC::Proof: PartialEq")
 )]
-pub struct Proof<F, PC, S: CryptographicSponge>
+pub struct Proof<F, PC, S>
 where
     F: PrimeField,
     PC: HomomorphicCommitment<F, S>,
+    S: CryptographicSponge,
 {
     /// Commitment to the witness polynomial for the left wires.
     pub(crate) a_comm: PC::Commitment,
@@ -111,15 +112,16 @@ where
     pub(crate) evaluations: ProofEvaluations<F>,
 }
 
-impl<F, PC> Proof<F, PC>
+impl<F, PC, S> Proof<F, PC, S>
 where
     F: PrimeField,
-    PC: HomomorphicCommitment<F>,
+    PC: HomomorphicCommitment<F, S>,
+    S: CryptographicSponge,
 {
     /// Performs the verification of a [`Proof`] returning a boolean result.
     pub(crate) fn verify<P>(
         &self,
-        plonk_verifier_key: &PlonkVerifierKey<F, PC>,
+        plonk_verifier_key: &PlonkVerifierKey<F, PC, S>,
         transcript: &mut Transcript,
         verifier_key: &PC::VerifierKey,
         pub_inputs: &PublicInputs<F>,
@@ -130,7 +132,7 @@ where
         let domain = GeneralEvaluationDomain::<F>::new(plonk_verifier_key.n).ok_or(
             Error::InvalidEvalDomainSize {
                 log_size_of_group: plonk_verifier_key.n.trailing_zeros(),
-                adicity: <<F as FftField>::FftParams as ark_ff::FftParameters>::TWO_ADICITY,
+                adicity: <F as FftField>::TWO_ADICITY,
             },
         )?;
 
@@ -502,7 +504,7 @@ where
         lookup_sep_challenge: F,
         z_challenge: F,
         l1_eval: F,
-        plonk_verifier_key: &PlonkVerifierKey<F, PC>,
+        plonk_verifier_key: &PlonkVerifierKey<F, PC, S>,
     ) -> PC::Commitment
     where
         P: TEModelParameters<BaseField = F>,
@@ -690,8 +692,8 @@ mod test {
     where
         F: PrimeField,
         P: TEModelParameters<BaseField = F>,
-        PC: HomomorphicCommitment<F>,
-        Proof<F, PC>: std::fmt::Debug + PartialEq,
+        PC: HomomorphicCommitment<F, S>,
+        Proof<F, PC, S>: std::fmt::Debug + PartialEq,
     {
         let proof = crate::constraint_system::helper::gadget_tester::<F, P, PC>(
             |_: &mut crate::constraint_system::StandardComposer<F, P>| {},

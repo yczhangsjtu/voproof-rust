@@ -12,7 +12,7 @@ use ark_ff::{FftField, PrimeField};
 use ark_poly::{polynomial::univariate::DensePolynomial, Evaluations};
 use ark_poly_commit::PolynomialCommitment;
 use ark_serialize::*;
-use crypto_primitives_voproof::sponge::CryptographicSponge;
+use ark_crypto_primitives::sponge::CryptographicSponge;
 
 /// Arithmetic Gates Prover Key
 #[derive(CanonicalDeserialize, CanonicalSerialize, derivative::Derivative)]
@@ -139,10 +139,11 @@ where
     pub q_arith: PC::Commitment,
 }
 
-impl<F, PC> VerifierKey<F, PC>
+impl<F, PC, S> VerifierKey<F, PC, S>
 where
     F: PrimeField,
-    PC: PolynomialCommitment<F, DensePolynomial<F>>,
+    PC: PolynomialCommitment<F, DensePolynomial<F>, S>,
+    S: CryptographicSponge,
 {
     /// Computes arithmetic gate contribution to the linearisation polynomial
     /// commitment.

@@ -88,7 +88,7 @@ fn constraint_system_benchmark<F, P, HC>(name: &str, c: &mut Criterion)
 where
     F: PrimeField,
     P: TEModelParameters<BaseField = F>,
-    HC: HomomorphicCommitment<F>,
+    HC: HomomorphicCommitment<F, S>,
 {
     let label = b"ark".as_slice();
 

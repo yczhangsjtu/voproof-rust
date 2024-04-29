@@ -460,7 +460,7 @@ macro_rules! commitment_linear_combination_no_one {
         {
             Commitment::<E>(
                 sum!(
-                    $( ( $cm.0 ).mul($c.into_repr()) ),+
+                    $( ( $cm.0 ).mul($c.into_bigint()) ),+
                 )
                 .into_affine(),
             )

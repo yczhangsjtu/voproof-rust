@@ -13,12 +13,11 @@ use crate::{
     error::Error,
     proof_system::{widget::VerifierKey as PlonkVerifierKey, Proof},
 };
-use ark_ec::TEModelParameters;
+use ark_ec::twisted_edwards::TECurveConfig as TEModelParameters;
 use ark_ff::PrimeField;
 use core::marker::PhantomData;
+use ark_crypto_primitives::sponge::CryptographicSponge;
 use merlin::Transcript;
-use crypto_primitives_voproof::sponge::CryptographicSponge;
-
 
 use super::pi::PublicInputs;
 
@@ -27,7 +26,7 @@ pub struct Verifier<F, P, PC, S>
 where
     F: PrimeField,
     P: TEModelParameters<BaseField = F>,
-    PC: HomomorphicCommitment<F>,
+    PC: HomomorphicCommitment<F, S>,
     S: CryptographicSponge,
 {
     /// VerificationKey which is used to verify a specific PLONK circuit
@@ -45,11 +44,12 @@ where
     pub preprocessed_transcript: Transcript,
 }
 
-impl<F, P, PC> Verifier<F, P, PC>
+impl<F, P, PC, S> Verifier<F, P, PC, S>
 where
     F: PrimeField,
     P: TEModelParameters<BaseField = F>,
-    PC: HomomorphicCommitment<F>,
+    PC: HomomorphicCommitment<F, S>,
+    S: CryptographicSponge,
 {
     /// Creates a new `Verifier` instance.
     pub fn new(label: &'static [u8]) -> Self {
@@ -79,13 +79,10 @@ where
         &mut self.cs
     }
 
-    /// Preprocess a circuit to obtain a [`PlonkVerifierKey<F, PC>`] and a
+    /// Preprocess a circuit to obtain a [`PlonkVerifierKey<F, PC, S>`] and a
     /// circuit descriptor so that the `Verifier` instance can verify
     /// [`Proof`]s for this circuit descriptor instance.
-    pub fn preprocess(
-        &mut self,
-        commit_key: &PC::CommitterKey,
-    ) -> Result<(), Error> {
+    pub fn preprocess(&mut self, commit_key: &PC::CommitterKey) -> Result<(), Error> {
         let vk = self.cs.preprocess_verifier(
             commit_key,
             &mut self.preprocessed_transcript,
@@ -108,7 +105,7 @@ where
     /// Verifies a [`Proof`] using `pc_verifier_key` and `public_inputs`.
     pub fn verify(
         &self,
-        proof: &Proof<F, PC>,
+        proof: &Proof<F, PC, S>,
         pc_verifier_key: &PC::VerifierKey,
         public_inputs: &PublicInputs<F>,
     ) -> Result<(), Error> {
@@ -121,14 +118,15 @@ where
     }
 }
 
-impl<F, P, PC> Default for Verifier<F, P, PC>
+impl<F, P, PC, S> Default for Verifier<F, P, PC, S>
 where
     F: PrimeField,
     P: TEModelParameters<BaseField = F>,
-    PC: HomomorphicCommitment<F>,
+    PC: HomomorphicCommitment<F, S>,
+    S: CryptographicSponge,
 {
     #[inline]
-    fn default() -> Verifier<F, P, PC> {
+    fn default() -> Verifier<F, P, PC, S> {
         Verifier::new(b"plonk")
     }
 }

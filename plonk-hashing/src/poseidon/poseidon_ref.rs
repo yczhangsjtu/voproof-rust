@@ -3,7 +3,7 @@
 use crate::poseidon::PoseidonError;
 
 use crate::poseidon::constants::PoseidonConstants;
-use ark_ec::TEModelParameters;
+use ark_ec::twisted_edwards::TECurveConfig as TEModelParameters;
 use ark_ff::PrimeField;
 use core::{fmt::Debug, marker::PhantomData};
 use derivative::Derivative;

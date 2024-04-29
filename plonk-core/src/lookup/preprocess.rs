@@ -10,7 +10,7 @@ use crate::lookup::{LookupTable, MultiSet};
 use ark_ff::PrimeField;
 use ark_poly::domain::EvaluationDomain;
 use ark_poly::polynomial::univariate::DensePolynomial;
-use crypto_primitives_voproof::sponge::CryptographicSponge;
+use ark_crypto_primitives::sponge::CryptographicSponge;
 
 /// This table will be the preprocessed version of the precomputed table,
 /// T, with arity 4. This structure is passed to the proof alongside the
@@ -30,10 +30,11 @@ where
     pub(crate) t: Vec<(MultiSet<F>, PC::Commitment, DensePolynomial<F>)>,
 }
 
-impl<F, PC> PreprocessedLookupTable<F, PC>
+impl<F, PC, S> PreprocessedLookupTable<F, PC, S>
 where
     F: PrimeField,
-    PC: HomomorphicCommitment<F>,
+    PC: HomomorphicCommitment<F, S>,
+    S: CryptographicSponge,
 {
     /// This function takes in a precomputed look up table and
     /// pads it to the length of the circuit entries, as a power
@@ -85,7 +86,7 @@ mod test {
     where
         F: PrimeField,
         P: TEModelParameters<BaseField = F>,
-        PC: HomomorphicCommitment<F>,
+        PC: HomomorphicCommitment<F, S>,
     {
         let pp = PC::setup(32, None, &mut OsRng)
             .map_err(to_pc_error::<F, PC>)

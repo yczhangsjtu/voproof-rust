@@ -1,12 +1,5 @@
 [workspace]
-members = [
-    "voproof",
-    "crypto-primitives",
-    "macros",
-    "plonk",
-    "plonk-core",
-    "plonk-hashing",
-]
+members = ["voproof"]
 resolver = "2"
 
 [workspace.package]

@@ -13,6 +13,7 @@ use crate::{
 use ark_ec::twisted_edwards::TECurveConfig as TEModelParameters;
 use ark_ff::PrimeField;
 use rand_core::OsRng;
+use ark_crypto_primitives::sponge::CryptographicSponge;
 
 /// Adds dummy constraints using arithmetic gates.
 #[allow(dead_code)]
@@ -32,14 +33,15 @@ where
 /// Takes a generic gadget function with no auxillary input and tests whether it
 /// passes an end-to-end test.
 #[allow(dead_code)]
-pub(crate) fn gadget_tester<F, P, PC>(
+pub(crate) fn gadget_tester<F, P, PC, S>(
     gadget: fn(&mut StandardComposer<F, P>),
     n: usize,
-) -> Result<crate::proof_system::Proof<F, PC>, Error>
+) -> Result<crate::proof_system::Proof<F, PC, S>, Error>
 where
     F: PrimeField,
     P: TEModelParameters<BaseField = F>,
-    PC: HomomorphicCommitment<F>,
+    PC: HomomorphicCommitment<F, S>,
+    S: CryptographicSponge,
 {
     // Common View
     let universal_params = PC::setup(2 * n, None, &mut OsRng).map_err(to_pc_error::<F, PC>)?;

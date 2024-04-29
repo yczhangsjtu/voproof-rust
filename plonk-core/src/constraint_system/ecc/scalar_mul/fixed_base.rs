@@ -56,7 +56,7 @@ where
         let scalar_value = self.variables.get(&scalar).unwrap();
 
         // Convert scalar to wnaf_2(k)
-        let wnaf_entries = scalar_value.into_repr().find_wnaf(2).expect("Fix this!");
+        let wnaf_entries = scalar_value.into_bigint().find_wnaf(2).expect("Fix this!");
         // wnaf_entries.extend(vec![0i64; num_bits - wnaf_entries.len()]);
         assert!(wnaf_entries.len() <= num_bits);
 
@@ -169,7 +169,7 @@ mod tests {
     where
         F: PrimeField,
         P: TEModelParameters<BaseField = F>,
-        PC: HomomorphicCommitment<F>,
+        PC: HomomorphicCommitment<F, S>,
     {
         let res = gadget_tester::<F, P, PC>(
             |composer: &mut StandardComposer<F, P>| {
@@ -200,7 +200,7 @@ mod tests {
     where
         F: PrimeField,
         P: TEModelParameters<BaseField = F>,
-        PC: HomomorphicCommitment<F>,
+        PC: HomomorphicCommitment<F, S>,
     {
         let res = gadget_tester::<F, P, PC>(
             |composer: &mut StandardComposer<F, P>| {
@@ -226,7 +226,7 @@ mod tests {
     where
         F: PrimeField,
         P: TEModelParameters<BaseField = F>,
-        PC: HomomorphicCommitment<F>,
+        PC: HomomorphicCommitment<F, S>,
     {
         let res = gadget_tester::<F, P, PC>(
             |composer: &mut StandardComposer<F, P>| {
@@ -256,7 +256,7 @@ mod tests {
     where
         F: PrimeField,
         P: TEModelParameters<BaseField = F>,
-        PC: HomomorphicCommitment<F>,
+        PC: HomomorphicCommitment<F, S>,
     {
         let res = gadget_tester::<F, P, PC>(
             |composer: &mut StandardComposer<F, P>| {
@@ -291,7 +291,7 @@ mod tests {
     where
         F: PrimeField,
         P: TEModelParameters<BaseField = F>,
-        PC: HomomorphicCommitment<F>,
+        PC: HomomorphicCommitment<F, S>,
     {
         let res = gadget_tester::<F, P, PC>(
             |composer: &mut StandardComposer<F, P>| {
@@ -352,7 +352,7 @@ mod tests {
     where
         F: PrimeField,
         P: TEModelParameters<BaseField = F>,
-        PC: HomomorphicCommitment<F>,
+        PC: HomomorphicCommitment<F, S>,
     {
         let res = gadget_tester::<F, P, PC>(
             |composer: &mut StandardComposer<F, P>| {

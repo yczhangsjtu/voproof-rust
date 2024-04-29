@@ -35,21 +35,21 @@ impl VOProof__NAME__ {
 
 impl<E: PairingEngine> SNARK<E> for VOProof__NAME__ {
   type Size = __CSNAME__Size;
-  type CS = __CSNAME__<E::Fr>;
+  type CS = __CSNAME__<E::ScalarField>;
   type PK = __NAME__ProverKey<E>;
   type VK = __NAME__VerifierKey<E>;
-  type Ins = __CSNAME__Instance<E::Fr>;
-  type Wit = __CSNAME__Witness<E::Fr>;
+  type Ins = __CSNAME__Instance<E::ScalarField>;
+  type Wit = __CSNAME__Witness<E::ScalarField>;
   type Pf = __NAME__Proof<E>;
 
   fn setup(size: usize) -> Result<UniversalParams<E>, Error> {
     let rng = &mut test_rng();
-    KZG10::<E, DensePoly<E::Fr>>::setup(size, rng)
+    KZG10::<E, DensePoly<E::ScalarField>>::setup(size, rng)
   }
 
   fn index(
     pp: &UniversalParams<E>,
-    cs: &__CSNAME__<E::Fr>,
+    cs: &__CSNAME__<E::ScalarField>,
   ) -> Result<(__NAME__ProverKey<E>, __NAME__VerifierKey<E>), Error> {
     let max_degree = Self::get_max_degree(cs.get_size());
     let cap_d = pp.powers_of_g.len();
@@ -96,7 +96,7 @@ impl<E: PairingEngine> SNARK<E> for VOProof__NAME__ {
     let cap_d = vk.degree_bound as i64;
     let rng = &mut test_rng();
     /*{verify}*/
-    if KZG10::<E, DensePoly<E::Fr>>::batch_check(
+    if KZG10::<E, DensePoly<E::ScalarField>>::batch_check(
       &vk.kzg_vk,
       &f_commitments,
       &g_commitments,

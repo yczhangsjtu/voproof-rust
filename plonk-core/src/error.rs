@@ -1,3 +1,4 @@
+use ark_crypto_primitives::sponge::CryptographicSponge;
 // This Source Code Form is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -93,13 +94,15 @@ impl From<ark_poly_commit::error::Error> for Error {
 }
 
 /// Convert an ark_poly_commit error
-pub fn to_pc_error<F, PC>(error: PC::Error) -> Error
+pub fn to_pc_error<F, PC, S>(error: PC::Error) -> Error
 where
     F: ark_ff::Field,
     PC: ark_poly_commit::PolynomialCommitment<
         F,
         ark_poly::univariate::DensePolynomial<F>,
+        S,
     >,
+    S: CryptographicSponge,
 {
     Error::PCError {
         error: format!("Polynomial Commitment Error: {:?}", error),
