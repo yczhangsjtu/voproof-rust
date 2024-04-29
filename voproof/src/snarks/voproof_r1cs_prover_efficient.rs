@@ -6,11 +6,11 @@ pub struct R1CSProverEfficientProverKey<E: PairingEngine> {
   pub verifier_key: R1CSProverEfficientVerifierKey<E>,
   pub powers: Vec<E::G1Affine>,
   pub max_degree: u64,
-  pub cap_m_mat: (Vec<u64>, Vec<u64>, Vec<E::Fr>),
-  pub u_vec: Vec<E::Fr>,
-  pub w_vec: Vec<E::Fr>,
-  pub v_vec: Vec<E::Fr>,
-  pub y_vec: Vec<E::Fr>,
+  pub cap_m_mat: (Vec<u64>, Vec<u64>, Vec<E::ScalarField>),
+  pub u_vec: Vec<E::ScalarField>,
+  pub w_vec: Vec<E::ScalarField>,
+  pub v_vec: Vec<E::ScalarField>,
+  pub y_vec: Vec<E::ScalarField>,
 }
 
 #[derive(Clone, CanonicalSerialize, CanonicalDeserialize)]
@@ -36,9 +36,9 @@ pub struct R1CSProverEfficientProof<E: PairingEngine> {
   pub cm_t_vec_1: Commitment<E>,
   pub cm_h_vec_1: Commitment<E>,
   pub cm_h_vec_2: Commitment<E>,
-  pub y: E::Fr,
-  pub y_1: E::Fr,
-  pub y_2: E::Fr,
+  pub y: E::ScalarField,
+  pub y_1: E::ScalarField,
+  pub y_2: E::ScalarField,
   pub cap_w: KZGProof<E>,
   pub cap_w_1: KZGProof<E>,
 }
@@ -62,21 +62,21 @@ impl VOProofR1CSProverEfficient {
 
 impl<E: PairingEngine> SNARK<E> for VOProofR1CSProverEfficient {
   type Size = R1CSSize;
-  type CS = R1CS<E::Fr>;
+  type CS = R1CS<E::ScalarField>;
   type PK = R1CSProverEfficientProverKey<E>;
   type VK = R1CSProverEfficientVerifierKey<E>;
-  type Ins = R1CSInstance<E::Fr>;
-  type Wit = R1CSWitness<E::Fr>;
+  type Ins = R1CSInstance<E::ScalarField>;
+  type Wit = R1CSWitness<E::ScalarField>;
   type Pf = R1CSProverEfficientProof<E>;
 
   fn setup(size: usize) -> Result<UniversalParams<E>, Error> {
     let rng = &mut test_rng();
-    KZG10::<E, DensePoly<E::Fr>>::setup(size, rng)
+    KZG10::<E, DensePoly<E::ScalarField>>::setup(size, rng)
   }
 
   fn index(
     pp: &UniversalParams<E>,
-    cs: &R1CS<E::Fr>,
+    cs: &R1CS<E::ScalarField>,
   ) -> Result<
     (
       R1CSProverEfficientProverKey<E>,
@@ -1241,7 +1241,7 @@ impl<E: PairingEngine> SNARK<E> for VOProofR1CSProverEfficient {
     define!(f_values, vec!(y, y_1, y_2));
     define!(g_values, vec!(zero!()));
 
-    if KZG10::<E, DensePoly<E::Fr>>::batch_check(
+    if KZG10::<E, DensePoly<E::ScalarField>>::batch_check(
       &vk.kzg_vk,
       &f_commitments,
       &g_commitments,

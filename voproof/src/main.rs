@@ -1,4 +1,4 @@
-use ark_ec::PairingEngine;
+use ark_ec::pairing::Pairing;
 use ark_ff::fields::PrimeField;
 use ark_relations::{
   lc,
@@ -9,14 +9,14 @@ use ark_relations::{
 };
 use ark_std::test_rng;
 use voproof::cs::{
+  hpr::generate_random_hpr_instance,
   r1cs::{R1CSInstance, R1CSWitness, R1CS},
-  hpr::{generate_random_hpr_instance},
   ConstraintSystem,
 };
 use voproof::error::Error;
 use voproof::kzg::UniversalParams;
-use voproof::snarks::{voproof_r1cs::*, voproof_hpr::*, SNARK};
-use voproof::tools::{to_field, to_int, fmt_field};
+use voproof::snarks::{voproof_hpr::*, voproof_r1cs::*, SNARK};
+use voproof::tools::{fmt_field, to_field, to_int};
 use voproof::*;
 // use voproof::kzg::{KZG10, UniversalParams, Powers, VerifierKey, Randomness};
 
@@ -64,17 +64,17 @@ impl<F: PrimeField> ConstraintSynthesizer<F> for TestCircuit<F> {
   }
 }
 
-fn run_r1cs_example<E: PairingEngine>() -> Result<(), Error> {
-  let c = TestCircuit::<E::Fr> {
-    a: Some(to_field::<E::Fr>(3)),
-    b: Some(to_field::<E::Fr>(2)),
+fn run_r1cs_example<E: Pairing>() -> Result<(), Error> {
+  let c = TestCircuit::<E::ScalarField> {
+    a: Some(to_field::<E::ScalarField>(3)),
+    b: Some(to_field::<E::ScalarField>(2)),
     num_variables: 5,
     num_constraints: 5,
   };
   let x = vec![c.a.unwrap(), c.b.unwrap(), (c.a.unwrap() * c.b.unwrap())];
   let w = vec![c.a.unwrap(); 2];
 
-  let cs = ArkR1CS::<E::Fr>::new_ref();
+  let cs = ArkR1CS::<E::ScalarField>::new_ref();
   c.generate_constraints(cs.clone()).unwrap();
   let r1cs = R1CS::from(cs.into_inner().unwrap());
   println!("R1CS num rows: {}", r1cs.nrows);
@@ -124,7 +124,7 @@ fn run_r1cs_example<E: PairingEngine>() -> Result<(), Error> {
   VOProofR1CS::verify(&vk, &instance, &proof)
 }
 
-fn run_hpr_example<E: PairingEngine>(scale: usize) -> Result<(), Error> {
+fn run_hpr_example<E: Pairing>(scale: usize) -> Result<(), Error> {
   let rng = &mut test_rng();
   let (hpr, instance, witness) =
     generate_random_hpr_instance(scale as u64, scale as u64, scale as u64 / 5, rng);

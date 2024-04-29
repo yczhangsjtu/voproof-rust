@@ -6,8 +6,8 @@ pub struct POVProverKey<E: PairingEngine> {
   pub verifier_key: POVVerifierKey<E>,
   pub powers: Vec<E::G1Affine>,
   pub max_degree: u64,
-  pub sigma_vec: Vec<E::Fr>,
-  pub d_vec: Vec<E::Fr>,
+  pub sigma_vec: Vec<E::ScalarField>,
+  pub d_vec: Vec<E::ScalarField>,
 }
 
 #[derive(Clone, CanonicalSerialize, CanonicalDeserialize)]
@@ -26,8 +26,8 @@ pub struct POVProof<E: PairingEngine> {
   pub cm_t_vec_1: Commitment<E>,
   pub cm_h_vec_1: Commitment<E>,
   pub cm_h_vec_2: Commitment<E>,
-  pub y: E::Fr,
-  pub y_2: E::Fr,
+  pub y: E::ScalarField,
+  pub y_2: E::ScalarField,
   pub cap_w: KZGProof<E>,
   pub cap_w_1: KZGProof<E>,
 }
@@ -48,21 +48,21 @@ impl VOProofPOV {
 
 impl<E: PairingEngine> SNARK<E> for VOProofPOV {
   type Size = POVSize;
-  type CS = POV<E::Fr>;
+  type CS = POV<E::ScalarField>;
   type PK = POVProverKey<E>;
   type VK = POVVerifierKey<E>;
-  type Ins = POVInstance<E::Fr>;
-  type Wit = POVWitness<E::Fr>;
+  type Ins = POVInstance<E::ScalarField>;
+  type Wit = POVWitness<E::ScalarField>;
   type Pf = POVProof<E>;
 
   fn setup(size: usize) -> Result<UniversalParams<E>, Error> {
     let rng = &mut test_rng();
-    KZG10::<E, DensePoly<E::Fr>>::setup(size, rng)
+    KZG10::<E, DensePoly<E::ScalarField>>::setup(size, rng)
   }
 
   fn index(
     pp: &UniversalParams<E>,
-    cs: &POV<E::Fr>,
+    cs: &POV<E::ScalarField>,
   ) -> Result<(POVProverKey<E>, POVVerifierKey<E>), Error> {
     let max_degree = Self::get_max_degree(cs.get_size());
     let cap_d = pp.powers_of_g.len();
@@ -753,7 +753,7 @@ impl<E: PairingEngine> SNARK<E> for VOProofPOV {
     define!(f_values, vec!(y, y_2));
     define!(g_values, vec!(zero!()));
 
-    if KZG10::<E, DensePoly<E::Fr>>::batch_check(
+    if KZG10::<E, DensePoly<E::ScalarField>>::batch_check(
       &vk.kzg_vk,
       &f_commitments,
       &g_commitments,

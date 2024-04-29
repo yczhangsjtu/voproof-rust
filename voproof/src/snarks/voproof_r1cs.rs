@@ -6,11 +6,11 @@ pub struct R1CSProverKey<E: PairingEngine> {
   pub verifier_key: R1CSVerifierKey<E>,
   pub powers: Vec<E::G1Affine>,
   pub max_degree: u64,
-  pub cap_m_mat: (Vec<u64>, Vec<u64>, Vec<E::Fr>),
-  pub u_vec: Vec<E::Fr>,
-  pub w_vec: Vec<E::Fr>,
-  pub v_vec: Vec<E::Fr>,
-  pub y_vec: Vec<E::Fr>,
+  pub cap_m_mat: (Vec<u64>, Vec<u64>, Vec<E::ScalarField>),
+  pub u_vec: Vec<E::ScalarField>,
+  pub w_vec: Vec<E::ScalarField>,
+  pub v_vec: Vec<E::ScalarField>,
+  pub y_vec: Vec<E::ScalarField>,
 }
 
 #[derive(Clone, CanonicalSerialize, CanonicalDeserialize)]
@@ -33,8 +33,8 @@ pub struct R1CSProof<E: PairingEngine> {
   pub cm_t_vec: Commitment<E>,
   pub cm_h_vec_2: Commitment<E>,
   pub cm_h_vec_3: Commitment<E>,
-  pub y: E::Fr,
-  pub y_1: E::Fr,
+  pub y: E::ScalarField,
+  pub y_1: E::ScalarField,
   pub cap_w: KZGProof<E>,
   pub cap_w_1: KZGProof<E>,
 }
@@ -59,21 +59,21 @@ impl VOProofR1CS {
 
 impl<E: PairingEngine> SNARK<E> for VOProofR1CS {
   type Size = R1CSSize;
-  type CS = R1CS<E::Fr>;
+  type CS = R1CS<E::ScalarField>;
   type PK = R1CSProverKey<E>;
   type VK = R1CSVerifierKey<E>;
-  type Ins = R1CSInstance<E::Fr>;
-  type Wit = R1CSWitness<E::Fr>;
+  type Ins = R1CSInstance<E::ScalarField>;
+  type Wit = R1CSWitness<E::ScalarField>;
   type Pf = R1CSProof<E>;
 
   fn setup(size: usize) -> Result<UniversalParams<E>, Error> {
     let rng = &mut test_rng();
-    KZG10::<E, DensePoly<E::Fr>>::setup(size, rng)
+    KZG10::<E, DensePoly<E::ScalarField>>::setup(size, rng)
   }
 
   fn index(
     pp: &UniversalParams<E>,
-    cs: &R1CS<E::Fr>,
+    cs: &R1CS<E::ScalarField>,
   ) -> Result<(R1CSProverKey<E>, R1CSVerifierKey<E>), Error> {
     let max_degree = Self::get_max_degree(cs.get_size());
     let cap_d = pp.powers_of_g.len();
@@ -1115,7 +1115,7 @@ impl<E: PairingEngine> SNARK<E> for VOProofR1CS {
     define!(f_values, vec!(y, y_1));
     define!(g_values, vec!(zero!()));
 
-    if KZG10::<E, DensePoly<E::Fr>>::batch_check(
+    if KZG10::<E, DensePoly<E::ScalarField>>::batch_check(
       &vk.kzg_vk,
       &f_commitments,
       &g_commitments,

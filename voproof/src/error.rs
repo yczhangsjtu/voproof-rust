@@ -187,6 +187,7 @@ pub enum Error {
   InputSizeNotSupported(usize, usize),
   TryingToConnectTheSameVariable,
   ConnectedVariablesDoNotHaveWire,
+  MSMError(String),
 }
 
 impl core::fmt::Display for Error {
@@ -290,8 +291,14 @@ impl core::fmt::Display for Error {
             Error::InputSizeNotSupported(expected, real) => write!(f, "InputSizeNotSupported, expected {}, got {}", expected, real),
             Error::TryingToConnectTheSameVariable => write!(f, "TryingToConnectTheSameVariable"),
             Error::ConnectedVariablesDoNotHaveWire => write!(f, "ConnectedVariablesDoNotHaveWire"),
+            Error::MSMError(info) => write!(f, "MSMError {}", info),
         }
   }
 }
 
 impl VOProofError for Error {}
+impl From<usize> for Error {
+  fn from(e: usize) -> Self {
+    Error::MSMError(format!("The shortest length the MSM can perform is {}", e))
+  }
+}

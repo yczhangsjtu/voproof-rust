@@ -6,11 +6,11 @@ pub struct HPRProverKey<E: PairingEngine> {
   pub verifier_key: HPRVerifierKey<E>,
   pub powers: Vec<E::G1Affine>,
   pub max_degree: u64,
-  pub cap_m_mat: (Vec<u64>, Vec<u64>, Vec<E::Fr>),
-  pub u_vec: Vec<E::Fr>,
-  pub w_vec: Vec<E::Fr>,
-  pub v_vec: Vec<E::Fr>,
-  pub y_vec: Vec<E::Fr>,
+  pub cap_m_mat: (Vec<u64>, Vec<u64>, Vec<E::ScalarField>),
+  pub u_vec: Vec<E::ScalarField>,
+  pub w_vec: Vec<E::ScalarField>,
+  pub v_vec: Vec<E::ScalarField>,
+  pub y_vec: Vec<E::ScalarField>,
 }
 
 #[derive(Clone, CanonicalSerialize, CanonicalDeserialize)]
@@ -33,8 +33,8 @@ pub struct HPRProof<E: PairingEngine> {
   pub cm_t_vec: Commitment<E>,
   pub cm_h_vec_2: Commitment<E>,
   pub cm_h_vec_3: Commitment<E>,
-  pub y: E::Fr,
-  pub y_1: E::Fr,
+  pub y: E::ScalarField,
+  pub y_1: E::ScalarField,
   pub cap_w: KZGProof<E>,
   pub cap_w_1: KZGProof<E>,
 }
@@ -60,21 +60,21 @@ impl VOProofHPR {
 
 impl<E: PairingEngine> SNARK<E> for VOProofHPR {
   type Size = HPRSize;
-  type CS = HPR<E::Fr>;
+  type CS = HPR<E::ScalarField>;
   type PK = HPRProverKey<E>;
   type VK = HPRVerifierKey<E>;
-  type Ins = HPRInstance<E::Fr>;
-  type Wit = HPRWitness<E::Fr>;
+  type Ins = HPRInstance<E::ScalarField>;
+  type Wit = HPRWitness<E::ScalarField>;
   type Pf = HPRProof<E>;
 
   fn setup(size: usize) -> Result<UniversalParams<E>, Error> {
     let rng = &mut test_rng();
-    KZG10::<E, DensePoly<E::Fr>>::setup(size, rng)
+    KZG10::<E, DensePoly<E::ScalarField>>::setup(size, rng)
   }
 
   fn index(
     pp: &UniversalParams<E>,
-    cs: &HPR<E::Fr>,
+    cs: &HPR<E::ScalarField>,
   ) -> Result<(HPRProverKey<E>, HPRVerifierKey<E>), Error> {
     let max_degree = Self::get_max_degree(cs.get_size());
     let cap_d = pp.powers_of_g.len();
@@ -1204,7 +1204,7 @@ impl<E: PairingEngine> SNARK<E> for VOProofHPR {
     define!(f_values, vec!(y, y_1));
     define!(g_values, vec!(zero!()));
 
-    if KZG10::<E, DensePoly<E::Fr>>::batch_check(
+    if KZG10::<E, DensePoly<E::ScalarField>>::batch_check(
       &vk.kzg_vk,
       &f_commitments,
       &g_commitments,
