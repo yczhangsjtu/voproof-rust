@@ -3,7 +3,7 @@ extern crate test;
 use test::Bencher;
 
 use ark_bls12_381::Bls12_381 as E;
-use ark_ec::PairingEngine;
+use ark_ec::pairing::Pairing as PairingEngine;
 use ark_ff::fields::PrimeField;
 use ark_relations::{
   lc,

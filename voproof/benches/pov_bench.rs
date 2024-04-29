@@ -4,7 +4,7 @@ use test::Bencher;
 
 use ark_bls12_381::Bls12_381 as E;
 use ark_bls12_381::Fr as F;
-use ark_ec::PairingEngine;
+use ark_ec::pairing::Pairing as PairingEngine;
 use ark_ff::fields::PrimeField;
 use ark_relations::{
   lc,
@@ -21,7 +21,7 @@ use voproof::tools::{fmt_field, to_field, try_to_int};
 use voproof::*;
 
 macro_rules! define_bench_pov_verifier {
-  ($func_name:ident, $snark:ident) => (
+  ($func_name:ident, $snark:ident) => {
     #[bench]
     fn $func_name(bencher: &mut Bencher) {
       let mut circ = FanInTwoCircuit::<F>::new();
@@ -39,11 +39,7 @@ macro_rules! define_bench_pov_verifier {
       circ.mark_variable_as_public(&a).unwrap();
       circ.mark_variable_as_public(&p).unwrap();
       circ
-        .evaluate(&vec![
-          to_field::<F>(1),
-          to_field::<F>(2),
-          to_field::<F>(3),
-        ])
+        .evaluate(&vec![to_field::<F>(1), to_field::<F>(2), to_field::<F>(3)])
         .unwrap();
       let ins = POVInstance {
         instance: circ.get_instance().unwrap(),
@@ -69,9 +65,8 @@ macro_rules! define_bench_pov_verifier {
         $snark::verify(&vk, &ins, &proof).unwrap();
       });
     }
-  )
+  };
 }
 
 define_bench_pov_verifier!(bench_pov_verifier, VOProofPOV);
 define_bench_pov_verifier!(bench_pov_pe_verifier, VOProofPOVProverEfficient);
-

@@ -35,15 +35,15 @@ pub fn try_to_int<F: Field>(e: F) -> Option<u64> {
 #[macro_export]
 macro_rules! custom_add_literal {
   (-$a: literal, $b: expr) => {
-    $b - to_field::<E::ScalarField>($a)
+    $b - to_field::<<E as PairingEngine>::ScalarField>($a)
   };
 
   ($a: literal, $b: expr) => {
-    to_field::<E::ScalarField>($a) + $b
+    to_field::<<E as PairingEngine>::ScalarField>($a) + $b
   };
 
   ($a: expr, $b: literal) => {
-    to_field::<E::ScalarField>(($b) as u64) + $a
+    to_field::<<E as PairingEngine>::ScalarField>(($b) as u64) + $a
   };
 }
 
@@ -213,7 +213,7 @@ pub fn power_iter<F: Field>(
 macro_rules! to_int {
   ( $v: expr) => {
     $v.iter()
-      .map(|e| to_int::<E::ScalarField>(*e))
+      .map(|e| to_int::<<E as PairingEngine>::ScalarField>(*e))
       .collect::<Vec<_>>()
   };
 }
@@ -222,7 +222,7 @@ macro_rules! to_int {
 macro_rules! to_field {
   ( $v: expr) => {
     $v.iter()
-      .map(|e| to_field::<E::ScalarField>(*e))
+      .map(|e| to_field::<<E as PairingEngine>::ScalarField>(*e))
       .collect::<Vec<_>>()
   };
 }
@@ -289,7 +289,7 @@ macro_rules! zero_pad {
     (&$u)
       .iter()
       .map(|a| *a)
-      .chain((0..($n as usize - $u.len())).map(|_| E::ScalarField::zero()))
+      .chain((0..($n as usize - $u.len())).map(|_| <E as PairingEngine>::ScalarField::zero()))
       .collect::<Vec<_>>()
   };
 }
@@ -298,7 +298,7 @@ macro_rules! zero_pad {
 macro_rules! zero_pad_and_concat {
     ( $u: expr, $n: expr, $( $v: expr ),+ ) => {
         (&$u).iter().map(|a| *a)
-          .chain((0..($n as usize-$u.len())).map(|_| E::ScalarField::zero()))
+          .chain((0..($n as usize-$u.len())).map(|_| <E as PairingEngine>::ScalarField::zero()))
           $(.chain((&$v).iter().map(|a| *a)))+.collect::<Vec<_>>()
     }
 }
@@ -320,14 +320,14 @@ macro_rules! define_mut {
 #[macro_export]
 macro_rules! define_vec {
   ( $v: ident, $expr: expr ) => {
-    let $v: Vec<E::ScalarField> = $expr;
+    let $v: Vec<<E as PairingEngine>::ScalarField> = $expr;
   };
 }
 
 #[macro_export]
 macro_rules! define_vec_mut {
   ( $v: ident, $expr: expr ) => {
-    let mut $v: Vec<E::ScalarField> = $expr;
+    let mut $v: Vec<<E as PairingEngine>::ScalarField> = $expr;
   };
 }
 
@@ -404,9 +404,9 @@ macro_rules! concat_matrix_horizontally {
 macro_rules! delta {
   ( $i: expr, $j: expr ) => {{
     if $i == $j {
-      E::ScalarField::one()
+      <E as PairingEngine>::ScalarField::one()
     } else {
-      E::ScalarField::zero()
+      <E as PairingEngine>::ScalarField::zero()
     }
   }};
 }
@@ -415,7 +415,7 @@ macro_rules! delta {
 macro_rules! multi_delta {
     ( $i: expr, $( $c:expr, $j:expr ),+ ) => {
         {
-            let mut s = E::ScalarField::zero();
+            let mut s = <E as PairingEngine>::ScalarField::zero();
             $( if $i == $j {
               s = s + $c;
             } )+
@@ -497,7 +497,7 @@ macro_rules! linear_combination_base_zero {
 #[macro_export]
 macro_rules! sample_randomizers {
     ( $rng: expr, $( $ident:ident, $size:expr ),+ ) => {
-        $( let $ident = sample_vec::<E::ScalarField, _>($rng, $size); )+
+        $( let $ident = sample_vec::<<E as PairingEngine>::ScalarField, _>($rng, $size); )+
     };
 }
 
@@ -505,8 +505,8 @@ macro_rules! sample_randomizers {
 macro_rules! power_linear_combination {
     ( $alpha: expr, $( $a:expr ),+ ) => {
         {
-            let mut s = E::ScalarField::zero();
-            let mut _c = E::ScalarField::one();
+            let mut s = <E as PairingEngine>::ScalarField::zero();
+            let mut _c = <E as PairingEngine>::ScalarField::one();
             $(
                 s = s + _c * $a;
                 _c = _c * $alpha;
@@ -522,7 +522,7 @@ macro_rules! vector_index {
     if ($i as i64) >= 1i64 && ($i as i64) <= $v.len() as i64 {
       $v[($i as i64 - 1) as usize]
     } else {
-      E::ScalarField::zero()
+      <E as PairingEngine>::ScalarField::zero()
     }
   }};
 }
@@ -531,9 +531,9 @@ macro_rules! vector_index {
 macro_rules! power_vector_index {
   ( $a: expr, $n: expr, $i: expr ) => {{
     if $i >= 1 && ($i as i64) <= ($n as i64) {
-      power::<E::ScalarField>($a, ($i - 1) as i64)
+      power::<<E as PairingEngine>::ScalarField>($a, ($i - 1) as i64)
     } else {
-      E::ScalarField::zero()
+      <E as PairingEngine>::ScalarField::zero()
     }
   }};
 }
@@ -542,9 +542,9 @@ macro_rules! power_vector_index {
 macro_rules! range_index {
   ( $s: expr, $e: expr, $i: expr ) => {{
     if ($i as i64) >= ($s as i64) && ($i as i64) <= ($e as i64) {
-      E::ScalarField::one()
+      <E as PairingEngine>::ScalarField::one()
     } else {
-      E::ScalarField::zero()
+      <E as PairingEngine>::ScalarField::zero()
     }
   }};
 }
@@ -603,7 +603,7 @@ macro_rules! accumulate_vector {
     };
 
     ( $i: ident, $v: expr, $n: expr, $op: tt ) => {
-        accumulate_vector!($i, E::ScalarField::zero(), $v, $n, $op)
+        accumulate_vector!($i, <E as PairingEngine>::ScalarField::zero(), $v, $n, $op)
     };
 
     ( $v: expr, $init: expr, $op: tt ) => {
@@ -611,7 +611,7 @@ macro_rules! accumulate_vector {
     };
 
     ( $v: expr, $op: tt ) => {
-        accumulate_vector!(i, E::ScalarField::zero(), $v[i-1], $v.len(), $op)
+        accumulate_vector!(i, <E as PairingEngine>::ScalarField::zero(), $v[i-1], $v.len(), $op)
     };
 }
 
@@ -771,7 +771,7 @@ macro_rules! poly_from_vec {
 macro_rules! vector_reverse_omega {
   ($v: expr, $omega:expr) => {{
     let timer = start_timer!(|| "Reverse omega");
-    let mut omega_power = E::ScalarField::one();
+    let mut omega_power = <E as PairingEngine>::ScalarField::one();
     let ret = $v
       .iter()
       .map(|c| {
@@ -779,11 +779,11 @@ macro_rules! vector_reverse_omega {
         omega_power = omega_power * $omega;
         res
       })
-      .collect::<Vec<E::ScalarField>>()
+      .collect::<Vec<<E as PairingEngine>::ScalarField>>()
       .iter()
       .map(|c| *c)
       .rev()
-      .collect::<Vec<E::ScalarField>>();
+      .collect::<Vec<<E as PairingEngine>::ScalarField>>();
     end_timer!(timer);
     ret
   }};
@@ -1044,8 +1044,10 @@ macro_rules! get_eval {
     $evals_dict.entry($size).or_insert_with(|| {
       let timer = start_timer!(|| format!("Forward FFT of size {}", $size));
       let domain = GeneralEvaluationDomain::new($size).unwrap();
-      let evals: Evaluations<E::ScalarField, GeneralEvaluationDomain<E::ScalarField>> =
-        $poly.evaluate_over_domain_by_ref(domain);
+      let evals: Evaluations<
+        <E as PairingEngine>::ScalarField,
+        GeneralEvaluationDomain<<E as PairingEngine>::ScalarField>,
+      > = $poly.evaluate_over_domain_by_ref(domain);
       end_timer!(timer);
       evals
     })
@@ -1065,8 +1067,10 @@ macro_rules! vector_poly_mul {
     let u = poly_from_vec!(vector_reverse_omega!($u, $omega));
     let v = poly_from_vec_clone!($v);
     let size =
-      GeneralEvaluationDomain::<E::ScalarField>::compute_size_of_domain($u.len() + $v.len())
-        .unwrap();
+      GeneralEvaluationDomain::<<E as PairingEngine>::ScalarField>::compute_size_of_domain(
+        $u.len() + $v.len(),
+      )
+      .unwrap();
     let mut uevals = get_eval!(u, $left_name, size).clone();
     let vevals = get_eval!(v, $right_name, size);
     uevals
@@ -1104,11 +1108,17 @@ macro_rules! define_vector_domain_evaluations_dict {
   ($left_name:ident, $right_name:ident) => {
     let mut $left_name: HashMap<
       usize,
-      Evaluations<E::ScalarField, GeneralEvaluationDomain<E::ScalarField>>,
+      Evaluations<
+        <E as PairingEngine>::ScalarField,
+        GeneralEvaluationDomain<<E as PairingEngine>::ScalarField>,
+      >,
     > = HashMap::new();
     let mut $right_name: HashMap<
       usize,
-      Evaluations<E::ScalarField, GeneralEvaluationDomain<E::ScalarField>>,
+      Evaluations<
+        <E as PairingEngine>::ScalarField,
+        GeneralEvaluationDomain<<E as PairingEngine>::ScalarField>,
+      >,
     > = HashMap::new();
   };
 }
@@ -1158,7 +1168,7 @@ macro_rules! vector_power_mul {
     // The accumulator version
     let alpha_power = power($alpha, $n as i64);
     let ret = (1..($n as usize) + $v.len())
-      .scan(E::ScalarField::zero(), |acc, i| {
+      .scan(<E as PairingEngine>::ScalarField::zero(), |acc, i| {
         *acc = *acc * $alpha + vector_index!($v, i)
           - vector_index!($v, (i as i64) - ($n as i64)) * alpha_power;
         Some(*acc)
@@ -1201,21 +1211,21 @@ macro_rules! power_power_mul {
   // of their product
   ($alpha:expr, $n:expr, $beta:expr, $m:expr) => {{
     let alpha_power = power($alpha, $n as i64);
-    let mut beta_power = E::ScalarField::one();
-    let mut late_beta_power = E::ScalarField::zero();
+    let mut beta_power = <E as PairingEngine>::ScalarField::one();
+    let mut late_beta_power = <E as PairingEngine>::ScalarField::zero();
     let timer = start_timer!(|| format!("Power power mul of size {} and {}", $n, $m));
     let ret = (1..($n as usize) + ($m as usize))
-      .scan(E::ScalarField::zero(), |acc, i| {
+      .scan(<E as PairingEngine>::ScalarField::zero(), |acc, i| {
         *acc = *acc * $alpha + beta_power - late_beta_power * alpha_power;
         beta_power = if i >= ($m as usize) {
-          E::ScalarField::zero()
+          <E as PairingEngine>::ScalarField::zero()
         } else {
           beta_power * $beta
         };
         late_beta_power = if i < ($n as usize) {
-          E::ScalarField::zero()
+          <E as PairingEngine>::ScalarField::zero()
         } else if i == ($n as usize) {
-          E::ScalarField::one()
+          <E as PairingEngine>::ScalarField::one()
         } else {
           late_beta_power * $beta
         };
@@ -1263,14 +1273,14 @@ macro_rules! eval_vector_expression {
   // expressed by an expression
   ($z:expr, $i:ident, $expr:expr, $n: expr) => {{
     let timer = start_timer!(|| format!("Eval vector expression of size {}", $n));
-    let mut power = E::ScalarField::one();
+    let mut power = <E as PairingEngine>::ScalarField::one();
     let ret = (1..=$n)
       .map(|$i| {
         let ret = $expr * power;
         power = power * $z;
         ret
       })
-      .sum::<E::ScalarField>();
+      .sum::<<E as PairingEngine>::ScalarField>();
     end_timer!(timer);
     ret
   }};
@@ -1345,7 +1355,7 @@ pub fn fmt_field<F: Field>(v: &F) -> String {
 #[macro_export]
 macro_rules! fmt_ff {
   ($a:expr) => {
-    fmt_field::<E::ScalarField>($a)
+    fmt_field::<<E as PairingEngine>::ScalarField>($a)
   };
 }
 
@@ -1354,7 +1364,7 @@ macro_rules! fmt_ff_vector {
   ($v: expr) => {
     ($v
       .iter()
-      .map(|e| fmt_field::<E::ScalarField>(e))
+      .map(|e| fmt_field::<<E as PairingEngine>::ScalarField>(e))
       .collect::<Vec<String>>())
     .join("\n")
   };
@@ -1406,7 +1416,7 @@ macro_rules! eval_sparse_vector {
       .iter()
       .zip($vals.iter())
       .map(|(i, a)| power($z, *i as i64) * *a)
-      .sum::<E::ScalarField>()
+      .sum::<<E as PairingEngine>::ScalarField>()
   };
 }
 
@@ -1416,7 +1426,7 @@ macro_rules! eval_sparse_zero_one_vector {
     $indices
       .iter()
       .map(|i| power($z, *i as i64))
-      .sum::<E::ScalarField>()
+      .sum::<<E as PairingEngine>::ScalarField>()
   };
 }
 
@@ -1424,7 +1434,7 @@ macro_rules! eval_sparse_zero_one_vector {
 macro_rules! define_sparse_vector {
   ($v:ident, $indices:expr, $vals:expr, $n:expr) => {
     let $v = {
-      let mut $v = vec![E::ScalarField::zero(); $n as usize];
+      let mut $v = vec![<E as PairingEngine>::ScalarField::zero(); $n as usize];
       for (i, a) in $indices.iter().zip($vals.iter()) {
         $v[*i as usize] = *a;
       }
@@ -1437,9 +1447,9 @@ macro_rules! define_sparse_vector {
 macro_rules! define_sparse_zero_one_vector {
   ($v:ident, $indices:expr, $n:expr) => {
     let $v = {
-      let mut $v = vec![E::ScalarField::zero(); $n as usize];
+      let mut $v = vec![<E as PairingEngine>::ScalarField::zero(); $n as usize];
       for i in $indices.iter() {
-        $v[*i as usize] = E::ScalarField::one();
+        $v[*i as usize] = <E as PairingEngine>::ScalarField::one();
       }
       $v
     };
@@ -1472,15 +1482,15 @@ macro_rules! inverse {
 #[cfg(test)]
 mod tests {
   use super::*;
-  use ark_bls12_381 as E;
-  use ark_bls12_381::ScalarField as F;
+  use ark_bls12_381::Bls12_381 as E;
+  use ark_bls12_381::Fr as F;
   use ark_ff::{Field, PrimeField};
   use ark_poly::{
     univariate::DensePolynomial as DensePoly, EvaluationDomain, Evaluations,
     GeneralEvaluationDomain,
   };
 
-  use ark_poly_commit::UVPolynomial;
+  use ark_poly_commit::DenseUVPolynomial as UVPolynomial;
   use ark_std::{collections::HashMap, One, Zero};
 
   #[test]
@@ -1499,28 +1509,10 @@ mod tests {
   fn test_sparse_mvp() {
     let rows = vec![1, 0, 3, 2];
     let cols = vec![0, 1, 2, 3];
-    let vals = vec![
-      F::from_repr(1.into()).unwrap(),
-      F::from_repr(3.into()).unwrap(),
-      F::from_repr(2.into()).unwrap(),
-      F::from_repr(5.into()).unwrap(),
-    ];
-    let right = vec![
-      F::from_repr(1.into()).unwrap(),
-      F::from_repr(1.into()).unwrap(),
-      F::from_repr(1.into()).unwrap(),
-      F::from_repr(1.into()).unwrap(),
-    ];
+    let vals = vec![F::from(1), F::from(3), F::from(2), F::from(5)];
+    let right = vec![F::from(1), F::from(1), F::from(1), F::from(1)];
     let left = sparse_mvp(4, 4, &rows, &cols, &vals, &right).unwrap();
-    assert_eq!(
-      left,
-      vec![
-        F::from_repr(3.into()).unwrap(),
-        F::from_repr(1.into()).unwrap(),
-        F::from_repr(5.into()).unwrap(),
-        F::from_repr(2.into()).unwrap()
-      ]
-    );
+    assert_eq!(left, vec![F::from(3), F::from(1), F::from(5), F::from(2)]);
   }
 
   #[test]
@@ -1734,9 +1726,9 @@ mod tests {
     );
     assert_eq!(
       to_int!(power_power_mul!(
-        E::ScalarField::one(),
+        <E as PairingEngine>::ScalarField::one(),
         4,
-        E::ScalarField::one(),
+        <E as PairingEngine>::ScalarField::one(),
         4
       )),
       vec![1, 2, 3, 4, 3, 2, 1]

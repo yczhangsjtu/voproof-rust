@@ -1,19 +1,18 @@
 use ark_crypto_primitives::{
   crh::{
     poseidon::{
-      CRH,
-      {
-        constraints::{CRHGadget, TwoToOneCRHGadget},
-        TwoToOneCRH,
-      },
+      constraints::{CRHGadget, TwoToOneCRHGadget},
+      TwoToOneCRH, CRH,
     },
-    TwoToOneCRHScheme, TwoToOneCRHSchemeGadget,
+    CRHScheme, CRHSchemeGadget, TwoToOneCRHScheme, TwoToOneCRHSchemeGadget,
   },
-  merkle_tree::{constraints::ConfigGadget, Config, IdentityDigestConverter},
-  CRHScheme, CRHSchemeGadget, Path, PathVar,
+  merkle_tree::{
+    constraints::{ConfigGadget, PathVar},
+    Config, IdentityDigestConverter, Path,
+  },
 };
-use ark_ec::PairingEngine;
-use ark_ff::fields::{FftField, Field, FpParameters, PrimeField};
+use ark_ec::pairing::Pairing as PairingEngine;
+use ark_ff::fields::{FftField, Field, FpConfig as FpParameters, PrimeField};
 use ark_r1cs_std::{alloc::AllocVar, fields::fp::FpVar, uint64::UInt64, R1CSVar};
 use ark_relations::{
   lc, ns,
@@ -52,9 +51,7 @@ pub struct MerkleTreeCircuit {
 
 impl ConstraintSynthesizer<F> for MerkleTreeCircuit {
   fn generate_constraints(self, cs: ConstraintSystemRef<F>) -> Result<(), SynthesisError> {
-    let generator: F =
-      F::from_repr(<<<E as PairingEngine>::Fr as FftField>::FftParams as FpParameters>::GENERATOR)
-        .unwrap();
+    let generator: F = <<E as PairingEngine>::ScalarField as FftField>::GENERATOR;
     let leaf_crh_params = super::poseidon_parameters();
     let two_to_one_params = leaf_crh_params.clone();
     let mut path = Path::<FieldMTConfig> {

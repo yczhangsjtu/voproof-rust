@@ -21,19 +21,19 @@ postfix="-- --nocapture"
   # $prefix test_marlin_mt_circuit_scale_$scale $postfix | egrep '^End:' | tee -a test_result_mt.txt
 # done
 
-# for scale in 8 16 32 64; do
-  # echo "VOPLONK $scale" | tee -a test_result_mt.txt
-  # $prefix test_pov_mt_$scale $postfix | egrep '^End:' | tee -a test_result_mt.txt
-  # echo "VOPLONK Prover Efficient $scale" | tee -a test_result_mt.txt
-  # $prefix test_pov_pe_mt_$scale $postfix | egrep '^End:' | tee -a test_result_mt.txt
-# done
+for scale in 8 16 32 64; do
+  echo "VOPLONK $scale" | tee -a test_result_mt.txt
+  $prefix test_pov_mt_$scale $postfix | egrep '^End:' | tee -a test_result_mt.txt
+  echo "VOPLONK Prover Efficient $scale" | tee -a test_result_mt.txt
+  $prefix test_pov_pe_mt_$scale $postfix | egrep '^End:' | tee -a test_result_mt.txt
+done
 
 # for scale in 8 16 32 64; do
   # echo "Groth16 $scale" | tee -a test_result_mt.txt
   # $prefix test_groth16_mt_circuit_scale_$scale $postfix | egrep '^End:' | tee -a test_result_mt.txt
 # done
 
-for scale in 8 16 32 64; do
-  echo "PLONK $scale" | tee -a test_result_mt.txt
-  $prefix test_plonk_mt_$scale $postfix | egrep '^End:' | tee -a test_result_mt.txt
-done
+# for scale in 8 16 32 64; do
+#   echo "PLONK $scale" | tee -a test_result_mt.txt
+#   $prefix test_plonk_mt_$scale $postfix | egrep '^End:' | tee -a test_result_mt.txt
+# done

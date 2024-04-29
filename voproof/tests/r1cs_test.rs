@@ -1,7 +1,7 @@
-use ark_ec::PairingEngine;
+use ark_ec::pairing::Pairing as PairingEngine;
 use ark_ff::{
-  fields::{FftField, Field, FpParameters, PrimeField},
-  to_bytes, Fp256,
+  fields::{FftField, Field, FpConfig as FpParameters, PrimeField},
+  Fp256,
 };
 use ark_r1cs_std::{alloc::AllocVar, fields::fp::FpVar, uint64::UInt64, R1CSVar};
 use ark_relations::{
@@ -300,7 +300,7 @@ define_test_large_scale!(
 
 macro_rules! define_run_r1cs_mt_example {
   ($func_name:ident, $snark: ident) => {
-    fn $func_name<E: PairingEngine<Fr = Fp256<ark_bls12_381::FrParameters>>>(
+    fn $func_name<E: PairingEngine<ScalarField = ark_bls12_381::Fr>>(
       height: u32,
     ) -> Result<(), Error> {
       let c = MerkleTreeCircuit {
@@ -371,7 +371,10 @@ macro_rules! define_run_r1cs_mt_example {
       let timer = start_timer!(|| "Verifying");
       let ret = $snark::verify(&vk, &instance, &proof);
       end_timer!(timer);
-      println!("Proof size: {}", proof.serialized_size());
+      println!(
+        "Proof size: {}",
+        proof.serialized_size(ark_serialize::Compress::No)
+      );
       ret
     }
   };

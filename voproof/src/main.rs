@@ -1,4 +1,4 @@
-use ark_ec::pairing::Pairing;
+use ark_ec::pairing::Pairing as PairingEngine;
 use ark_ff::fields::PrimeField;
 use ark_relations::{
   lc,
@@ -64,7 +64,7 @@ impl<F: PrimeField> ConstraintSynthesizer<F> for TestCircuit<F> {
   }
 }
 
-fn run_r1cs_example<E: Pairing>() -> Result<(), Error> {
+fn run_r1cs_example<E: PairingEngine>() -> Result<(), Error> {
   let c = TestCircuit::<E::ScalarField> {
     a: Some(to_field::<E::ScalarField>(3)),
     b: Some(to_field::<E::ScalarField>(2)),
@@ -124,7 +124,7 @@ fn run_r1cs_example<E: Pairing>() -> Result<(), Error> {
   VOProofR1CS::verify(&vk, &instance, &proof)
 }
 
-fn run_hpr_example<E: Pairing>(scale: usize) -> Result<(), Error> {
+fn run_hpr_example<E: PairingEngine>(scale: usize) -> Result<(), Error> {
   let rng = &mut test_rng();
   let (hpr, instance, witness) =
     generate_random_hpr_instance(scale as u64, scale as u64, scale as u64 / 5, rng);

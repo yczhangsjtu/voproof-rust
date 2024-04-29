@@ -1,12 +1,12 @@
-use ark_ec::PairingEngine;
+use ark_ec::pairing::Pairing as PairingEngine;
+use ark_serialize::CanonicalSerialize;
 use ark_std::test_rng;
-use ark_serialize::{CanonicalSerialize};
 use voproof::cs::{hpr::*, ConstraintSystem};
 use voproof::error::Error;
+use voproof::fmt_ff_vector;
 use voproof::kzg::UniversalParams;
 use voproof::snarks::{voproof_hpr::*, SNARK};
-use voproof::tools::{try_to_int, fmt_field};
-use voproof::fmt_ff_vector;
+use voproof::tools::{fmt_field, try_to_int};
 
 fn run_hpr_example<E: PairingEngine>(scale: usize) -> Result<(), Error> {
   let rng = &mut test_rng();
@@ -42,7 +42,10 @@ fn run_hpr_example<E: PairingEngine>(scale: usize) -> Result<(), Error> {
   println!("K: {}", vksize.ncols);
 
   let proof = VOProofHPR::prove(&pk, &instance, &witness)?;
-  println!("Proof size: {}", proof.serialized_size());
+  println!(
+    "Proof size: {}",
+    proof.serialized_size(ark_serialize::Compress::No)
+  );
   VOProofHPR::verify(&vk, &instance, &proof)
 }
 

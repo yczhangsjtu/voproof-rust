@@ -1,5 +1,5 @@
-use ark_ec::PairingEngine;
-use ark_ff::{FftField, Fp256, FpParameters, PrimeField};
+use ark_ec::pairing::Pairing as PairingEngine;
+use ark_ff::{FftField, Fp256, FpConfig as FpParameters, PrimeField};
 use ark_relations::{
   lc, ns,
   r1cs::{
@@ -78,7 +78,10 @@ macro_rules! define_run_pov_example {
 
       let mut proof = $snark::prove(&pk, &ins, &wit)?;
       $snark::verify(&vk, &ins, &proof)?;
-      println!("Proof size: {}", proof.serialized_size());
+      println!(
+        "Proof size: {}",
+        proof.serialized_size(ark_serialize::Compress::No)
+      );
       proof.y = E::ScalarField::zero();
       let result = $snark::verify(&vk, &ins, &proof);
       assert!(result.is_err());
@@ -163,7 +166,7 @@ fn test_pov_from_r1cs() {
 
 macro_rules! define_run_pov_mt {
   ($func_name:ident, $snark:ident) => {
-    fn $func_name<E: PairingEngine<Fr = Fp256<ark_bls12_381::FrParameters>>>(
+    fn $func_name<E: PairingEngine<ScalarField = ark_bls12_381::Fr>>(
       scale: usize,
     ) -> Result<(), Error> {
       let c = MerkleTreeCircuit { height: scale };
@@ -254,7 +257,10 @@ macro_rules! define_run_pov_mt {
       let timer = start_timer!(|| "Verifying");
       let ret = $snark::verify(&vk, &instance, &proof);
       end_timer!(timer);
-      println!("Proof size: {}", proof.serialized_size());
+      println!(
+        "Proof size: {}",
+        proof.serialized_size(ark_serialize::Compress::No)
+      );
       ret
     }
   };

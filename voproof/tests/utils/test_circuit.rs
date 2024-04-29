@@ -1,3 +1,4 @@
+use ark_ff::fields::{FftField, Field, FpConfig as FpParameters, PrimeField};
 use ark_relations::{
   lc, ns,
   r1cs::{
@@ -5,7 +6,6 @@ use ark_relations::{
     Variable,
   },
 };
-use ark_ff::fields::{FftField, Field, FpParameters, PrimeField};
 
 #[derive(Copy)]
 pub struct TestCircuit<F: PrimeField> {
@@ -50,5 +50,3 @@ impl<F: PrimeField> ConstraintSynthesizer<F> for TestCircuit<F> {
     Ok(())
   }
 }
-
-

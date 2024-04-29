@@ -451,7 +451,7 @@ mod tests {
 
   use ark_bls12_377::Bls12_377;
   use ark_bls12_381::Bls12_381;
-  use ark_ec::PairingEngine;
+  use ark_ec::pairing::Pairing as PairingEngine;
   use ark_poly::univariate::DensePolynomial as DensePoly;
   use ark_std::test_rng;
 
@@ -487,18 +487,18 @@ mod tests {
   fn basic_test() {
     let rng = &mut test_rng();
     let p = DensePoly::from_coefficients_slice(&[
-      ScalarField::from_repr(1.into()).unwrap(),
-      ScalarField::from_repr(2.into()).unwrap(),
-      ScalarField::from_repr(3.into()).unwrap(),
-      ScalarField::from_repr(0.into()).unwrap(),
-      ScalarField::from_repr(7.into()).unwrap(),
-      ScalarField::from_repr(9.into()).unwrap(),
+      ScalarField::from(1),
+      ScalarField::from(2),
+      ScalarField::from(3),
+      ScalarField::from(0),
+      ScalarField::from(7),
+      ScalarField::from(9),
     ]);
     let pp = KZG_Bls12_381::setup(10, rng).unwrap();
     let (powers, vk) = KZG_Bls12_381::trim(&pp, 6).unwrap();
     let comm = KZG10::commit(&powers, &p).unwrap();
 
-    let z = ScalarField::from_repr(2.into()).unwrap();
+    let z = ScalarField::from(2);
     println!("z = {}", z);
     let px = p.evaluate(&z);
     println!("p(z) = {}", px);

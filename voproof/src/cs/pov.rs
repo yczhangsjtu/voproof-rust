@@ -170,7 +170,7 @@ mod tests {
   use crate::tools::*;
   use crate::*;
   use ark_bls12_381::Bls12_381 as E;
-  use ark_ec::PairingEngine;
+  use ark_ec::pairing::Pairing as PairingEngine;
 
   #[test]
   fn test_satisfy() {
