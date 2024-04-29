@@ -10,15 +10,17 @@ use crate::lookup::{LookupTable, MultiSet};
 use ark_ff::PrimeField;
 use ark_poly::domain::EvaluationDomain;
 use ark_poly::polynomial::univariate::DensePolynomial;
+use crypto_primitives_voproof::sponge::CryptographicSponge;
 
 /// This table will be the preprocessed version of the precomputed table,
 /// T, with arity 4. This structure is passed to the proof alongside the
 /// table of witness values.
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct PreprocessedLookupTable<F, PC>
+pub struct PreprocessedLookupTable<F, PC, S>
 where
     F: PrimeField,
-    PC: HomomorphicCommitment<F>,
+    PC: HomomorphicCommitment<F, S>,
+    S: CryptographicSponge,
 {
     /// This is the circuit size
     pub n: u32,
@@ -54,14 +56,10 @@ where
                 column.pad(n);
                 let poly = column.to_polynomial(&domain);
                 let poly_name = format!("t_{}_poly", index + 1);
-                let labeled_poly = ark_poly_commit::LabeledPolynomial::new(
-                    poly_name,
-                    poly.to_owned(),
-                    None,
-                    None,
-                );
-                let commitment = PC::commit(commit_key, &[labeled_poly], None)
-                    .map_err(to_pc_error::<F, PC>)?;
+                let labeled_poly =
+                    ark_poly_commit::LabeledPolynomial::new(poly_name, poly.to_owned(), None, None);
+                let commitment =
+                    PC::commit(commit_key, &[labeled_poly], None).map_err(to_pc_error::<F, PC>)?;
                 Ok((column, commitment.0[0].commitment().clone(), poly))
             })
             .collect::<Result<_, Error>>()?;
@@ -77,7 +75,7 @@ mod test {
     use crate::lookup::{LookupTable, PreprocessedLookupTable};
     use ark_bls12_377::Bls12_377;
     use ark_bls12_381::Bls12_381;
-    use ark_ec::TEModelParameters;
+    use ark_ec::twisted_edwards::TECurveConfig as TEModelParameters;
     use rand_core::OsRng;
 
     /// This function creates a table and preprocesses it. Then it checks that
@@ -109,8 +107,7 @@ mod test {
         });
 
         let preprocessed_table =
-            PreprocessedLookupTable::<F, PC>::preprocess(&table, &ck, 32)
-                .unwrap();
+            PreprocessedLookupTable::<F, PC>::preprocess(&table, &ck, 32).unwrap();
 
         preprocessed_table.t.iter().for_each(|column| {
             assert!(preprocessed_table.n as usize == column.0.len());
@@ -124,7 +121,7 @@ mod test {
         ],
         [] => (
             Bls12_381,
-            ark_ed_on_bls12_381::EdwardsParameters
+            ark_ed_on_bls12_381::EdwardsConfig
         )
     );
 
@@ -135,7 +132,7 @@ mod test {
         ],
         [] => (
             Bls12_377,
-            ark_ed_on_bls12_377::EdwardsParameters
+            ark_ed_on_bls12_377::EdwardsConfig
         )
     );
 }

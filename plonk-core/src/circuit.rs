@@ -10,13 +10,12 @@ use crate::{
     commitment::HomomorphicCommitment,
     error::{to_pc_error, Error},
     prelude::StandardComposer,
-    proof_system::{
-        pi::PublicInputs, Proof, Prover, ProverKey, Verifier, VerifierKey,
-    },
+    proof_system::{pi::PublicInputs, Proof, Prover, ProverKey, Verifier, VerifierKey},
 };
 use ark_ec::models::TEModelParameters;
 use ark_ff::PrimeField;
 use ark_serialize::*;
+use crypto_primitives_voproof::sponge::CryptographicSponge;
 
 /// Collection of structs/objects that the Verifier will use in order to
 /// de/serialize data needed for Circuit proof verification.
@@ -25,25 +24,27 @@ use ark_serialize::*;
 #[derive(CanonicalDeserialize, CanonicalSerialize, derivative::Derivative)]
 #[derivative(
     Clone(bound = ""),
-    Debug(bound = "VerifierKey<F,PC>: core::fmt::Debug"),
-    Eq(bound = "VerifierKey<F,PC>: Eq"),
-    PartialEq(bound = "VerifierKey<F,PC>: PartialEq")
+    Debug(bound = "VerifierKey<F,PC,S>: core::fmt::Debug"),
+    Eq(bound = "VerifierKey<F,PC,S>: Eq"),
+    PartialEq(bound = "VerifierKey<F,PC,S>: PartialEq")
 )]
-pub struct VerifierData<F, PC>
+pub struct VerifierData<F, PC, S>
 where
     F: PrimeField,
-    PC: HomomorphicCommitment<F>,
+    PC: HomomorphicCommitment<F, S>,
+    S: CryptographicSponge,
 {
     /// Verifier Key
-    pub key: VerifierKey<F, PC>,
+    pub key: VerifierKey<F, PC, S>,
     /// Public Input
     pub pi: PublicInputs<F>,
 }
 
-impl<F, PC> VerifierData<F, PC>
+impl<F, PC, S> VerifierData<F, PC, S>
 where
     F: PrimeField,
-    PC: HomomorphicCommitment<F>,
+    PC: HomomorphicCommitment<F, S>,
+    S: CryptographicSponge,
 {
     /// Creates a new `VerifierData` from a [`VerifierKey`] and the public
     /// input of the circuit that it represents.
@@ -70,7 +71,7 @@ where
 ///
 /// ```rust,no_run
 /// use ark_bls12_381::{Bls12_381, Fr as BlsScalar};
-/// use ark_ec::PairingEngine;
+/// use ark_ec::Pairing as PairingEngine;
 /// use ark_ec::models::twisted_edwards_extended::GroupAffine;
 /// use ark_ec::{TEModelParameters, AffineCurve, ProjectiveCurve};
 /// use ark_ed_on_bls12_381::{
@@ -214,10 +215,7 @@ where
     const CIRCUIT_ID: [u8; 32];
 
     /// Gadget implementation used to fill the composer.
-    fn gadget(
-        &mut self,
-        composer: &mut StandardComposer<F, P>,
-    ) -> Result<(), Error>;
+    fn gadget(&mut self, composer: &mut StandardComposer<F, P>) -> Result<(), Error>;
 
     /// Compiles the circuit by using a function that returns a `Result`
     /// with the [`ProverKey`], [`VerifierKey`] and a vector of the intended
@@ -233,8 +231,7 @@ where
     {
         // Setup PublicParams
         let circuit_size = self.padded_circuit_size();
-        let (ck, _) = PC::trim(u_params, circuit_size, 0, None)
-            .map_err(to_pc_error::<F, PC>)?;
+        let (ck, _) = PC::trim(u_params, circuit_size, 0, None).map_err(to_pc_error::<F, PC>)?;
 
         //Generate & save `ProverKey` with some random values.
         let mut prover = Prover::<F, P, PC>::new(b"CircuitCompilation");
@@ -250,9 +247,9 @@ where
                 .prover_key
                 .expect("Unexpected error. Missing ProverKey in compilation"),
             (
-                verifier.verifier_key.expect(
-                    "Unexpected error. Missing VerifierKey in compilation",
-                ),
+                verifier
+                    .verifier_key
+                    .expect("Unexpected error. Missing VerifierKey in compilation"),
                 verifier.cs.intended_pi_pos,
             ),
         ))
@@ -273,8 +270,7 @@ where
         PC: HomomorphicCommitment<F>,
     {
         let circuit_size = self.padded_circuit_size();
-        let (ck, _) = PC::trim(u_params, circuit_size, 0, None)
-            .map_err(to_pc_error::<F, PC>)?;
+        let (ck, _) = PC::trim(u_params, circuit_size, 0, None).map_err(to_pc_error::<F, PC>)?;
         // New Prover instance
         let mut prover = Prover::new(transcript_init);
         // Fill witnesses for Prover
@@ -307,8 +303,7 @@ where
     let mut verifier: Verifier<F, P, PC> = Verifier::new(transcript_init);
     let padded_circuit_size = plonk_verifier_key.padded_circuit_size();
     verifier.verifier_key = Some(plonk_verifier_key);
-    let (_, vk) = PC::trim(u_params, padded_circuit_size, 0, None)
-        .map_err(to_pc_error::<F, PC>)?;
+    let (_, vk) = PC::trim(u_params, padded_circuit_size, 0, None).map_err(to_pc_error::<F, PC>)?;
 
     verifier.verify(proof, &vk, public_inputs)
 }
@@ -320,8 +315,8 @@ mod test {
     use ark_bls12_377::Bls12_377;
     use ark_bls12_381::Bls12_381;
     use ark_ec::{
-        twisted_edwards_extended::GroupAffine, AffineCurve, PairingEngine,
-        ProjectiveCurve,
+        twisted_edwards::Affine as GroupAffine, AffineRepr as AffineCurve,
+        CurveGroup as ProjectiveCurve, Pairing as PairingEngine,
     };
     use ark_ff::{FftField, PrimeField};
     use rand_core::OsRng;
@@ -350,10 +345,7 @@ mod test {
     {
         const CIRCUIT_ID: [u8; 32] = [0xff; 32];
 
-        fn gadget(
-            &mut self,
-            composer: &mut StandardComposer<F, P>,
-        ) -> Result<(), Error> {
+        fn gadget(&mut self, composer: &mut StandardComposer<F, P>) -> Result<(), Error> {
             let a = composer.add_input(self.a);
             let b = composer.add_input(self.b);
             let zero = composer.zero_var;
@@ -369,15 +361,12 @@ mod test {
             composer.range_gate(a, 1 << 6);
             composer.range_gate(b, 1 << 5);
             // Make second constraint a * b = d
-            composer.arithmetic_gate(|gate| {
-                gate.witness(a, b, Some(zero)).mul(F::one()).pi(-self.d)
-            });
-            let e = composer
-                .add_input(util::from_embedded_curve_scalar::<F, P>(self.e));
+            composer
+                .arithmetic_gate(|gate| gate.witness(a, b, Some(zero)).mul(F::one()).pi(-self.d));
+            let e = composer.add_input(util::from_embedded_curve_scalar::<F, P>(self.e));
             let (x, y) = P::AFFINE_GENERATOR_COEFFS;
             let generator = GroupAffine::new(x, y);
-            let scalar_mul_result =
-                composer.fixed_base_scalar_mul(e, generator);
+            let scalar_mul_result = composer.fixed_base_scalar_mul(e, generator);
 
             // Apply the constrain
             composer.assert_equal_public_point(scalar_mul_result, self.f);
@@ -397,8 +386,7 @@ mod test {
         VerifierData<F, PC>: PartialEq,
     {
         // Generate CRS
-        let pp = PC::setup(1 << 10, None, &mut OsRng)
-            .map_err(to_pc_error::<F, PC>)?;
+        let pp = PC::setup(1 << 10, None, &mut OsRng).map_err(to_pc_error::<F, PC>)?;
 
         let mut circuit = TestCircuit::<F, P>::default();
 
@@ -407,11 +395,8 @@ mod test {
 
         let (x, y) = P::AFFINE_GENERATOR_COEFFS;
         let generator: GroupAffine<P> = GroupAffine::new(x, y);
-        let point_f_pi: GroupAffine<P> = AffineCurve::mul(
-            &generator,
-            P::ScalarField::from(2u64).into_repr(),
-        )
-        .into_affine();
+        let point_f_pi: GroupAffine<P> =
+            AffineCurve::mul(&generator, P::ScalarField::from(2u64).into_repr()).into_affine();
 
         // Prover POV
         let (proof, pi) = {
@@ -478,10 +463,7 @@ mod test {
         test_full::<
             <Bls12_381 as PairingEngine>::Fr,
             ark_ed_on_bls12_381::EdwardsParameters,
-            crate::commitment::IPA<
-                <Bls12_381 as PairingEngine>::G1Affine,
-                blake2::Blake2b,
-            >,
+            crate::commitment::IPA<<Bls12_381 as PairingEngine>::G1Affine, blake2::Blake2b>,
         >()
     }
 
@@ -500,10 +482,7 @@ mod test {
         test_full::<
             <Bls12_377 as PairingEngine>::Fr,
             ark_ed_on_bls12_377::EdwardsParameters,
-            crate::commitment::IPA<
-                <Bls12_377 as PairingEngine>::G1Affine,
-                blake2::Blake2b,
-            >,
+            crate::commitment::IPA<<Bls12_377 as PairingEngine>::G1Affine, blake2::Blake2b>,
         >()
     }
 }

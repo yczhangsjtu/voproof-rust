@@ -7,14 +7,12 @@
 //! Arithmetic Gates
 
 use crate::proof_system::WitnessValues;
-use crate::{
-    constraint_system::SBOX_ALPHA,
-    proof_system::linearisation_poly::ProofEvaluations,
-};
+use crate::{constraint_system::SBOX_ALPHA, proof_system::linearisation_poly::ProofEvaluations};
 use ark_ff::{FftField, PrimeField};
 use ark_poly::{polynomial::univariate::DensePolynomial, Evaluations};
 use ark_poly_commit::PolynomialCommitment;
 use ark_serialize::*;
+use crypto_primitives_voproof::sponge::CryptographicSponge;
 
 /// Arithmetic Gates Prover Key
 #[derive(CanonicalDeserialize, CanonicalSerialize, derivative::Derivative)]
@@ -60,11 +58,7 @@ where
 {
     /// Computes the arithmetic gate contribution to the quotient polynomial at
     /// the element of the domain at the given `index`.
-    pub fn compute_quotient_i(
-        &self,
-        index: usize,
-        wit_vals: WitnessValues<F>,
-    ) -> F {
+    pub fn compute_quotient_i(&self, index: usize, wit_vals: WitnessValues<F>) -> F {
         ((wit_vals.a_val * wit_vals.b_val * self.q_m.1[index])
             + (wit_vals.a_val * self.q_l.1[index])
             + (wit_vals.b_val * self.q_r.1[index])
@@ -109,10 +103,10 @@ where
     Eq(bound = "PC::Commitment: Eq"),
     PartialEq(bound = "PC::Commitment: PartialEq")
 )]
-pub struct VerifierKey<F, PC>
+pub struct VerifierKey<F, PC, S: CryptographicSponge>
 where
     F: PrimeField,
-    PC: PolynomialCommitment<F, DensePolynomial<F>>,
+    PC: PolynomialCommitment<F, DensePolynomial<F>, S>,
 {
     /// Multiplication Selector Commitment
     pub q_m: PC::Commitment,
@@ -160,11 +154,7 @@ where
     ) {
         let q_arith_eval = evaluations.custom_evals.get("q_arith_eval");
 
-        scalars.push(
-            evaluations.wire_evals.a_eval
-                * evaluations.wire_evals.b_eval
-                * q_arith_eval,
-        );
+        scalars.push(evaluations.wire_evals.a_eval * evaluations.wire_evals.b_eval * q_arith_eval);
         points.push(self.q_m.clone());
 
         scalars.push(evaluations.wire_evals.a_eval * q_arith_eval);
@@ -179,19 +169,13 @@ where
         scalars.push(evaluations.wire_evals.c_eval * q_arith_eval);
         points.push(self.q_o.clone());
 
-        scalars.push(
-            evaluations.wire_evals.a_eval.pow([SBOX_ALPHA]) * q_arith_eval,
-        );
+        scalars.push(evaluations.wire_evals.a_eval.pow([SBOX_ALPHA]) * q_arith_eval);
         points.push(self.q_hl.clone());
 
-        scalars.push(
-            evaluations.wire_evals.b_eval.pow([SBOX_ALPHA]) * q_arith_eval,
-        );
+        scalars.push(evaluations.wire_evals.b_eval.pow([SBOX_ALPHA]) * q_arith_eval);
         points.push(self.q_hr.clone());
 
-        scalars.push(
-            evaluations.wire_evals.d_eval.pow([SBOX_ALPHA]) * q_arith_eval,
-        );
+        scalars.push(evaluations.wire_evals.d_eval.pow([SBOX_ALPHA]) * q_arith_eval);
         points.push(self.q_h4.clone());
 
         scalars.push(q_arith_eval);

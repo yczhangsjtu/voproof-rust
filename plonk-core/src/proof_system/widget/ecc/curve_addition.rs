@@ -11,7 +11,7 @@ use crate::proof_system::{
     widget::{GateConstraint, WitnessValues},
     CustomValues,
 };
-use ark_ec::{ModelParameters, TEModelParameters};
+use ark_ec::{twisted_edwards::TECurveConfig as TEModelParameters, CurveConfig as ModelParameters};
 use ark_ff::PrimeField;
 use core::marker::PhantomData;
 
@@ -91,7 +91,6 @@ where
         let y3_rhs = y_3 - y_3 * P::COEFF_D * x1_y2 * y1_x2;
         let y3_consistency = (y3_lhs - y3_rhs) * kappa.square();
 
-        (xy_consistency + x3_consistency + y3_consistency)
-            * separation_challenge
+        (xy_consistency + x3_consistency + y3_consistency) * separation_challenge
     }
 }

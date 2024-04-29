@@ -11,8 +11,8 @@ pub mod scalar_mul;
 
 use crate::constraint_system::{variable::Variable, StandardComposer};
 use ark_ec::{
-    twisted_edwards_extended::GroupAffine as TEGroupAffine, ModelParameters,
-    TEModelParameters,
+    twisted_edwards::{Affine as TEGroupAffine, TECurveConfig as TEModelParameters},
+    CurveConfig as ModelParameters,
 };
 use ark_ff::PrimeField;
 use core::marker::PhantomData;
@@ -56,8 +56,7 @@ where
 
     /// Returns an identity point.
     pub fn identity(composer: &mut StandardComposer<P::BaseField, P>) -> Self {
-        let one =
-            composer.add_witness_to_circuit_description(P::BaseField::one());
+        let one = composer.add_witness_to_circuit_description(P::BaseField::one());
         Self::new(composer.zero_var, one)
     }
 
@@ -94,10 +93,7 @@ where
 
     /// Add the provided affine point as a circuit description and return its
     /// constrained witness value
-    pub fn add_affine_to_circuit_description(
-        &mut self,
-        affine: TEGroupAffine<P>,
-    ) -> Point<P> {
+    pub fn add_affine_to_circuit_description(&mut self, affine: TEGroupAffine<P>) -> Point<P> {
         // NOTE: Not using individual gates because one of these may be zero.
         Point::new(
             self.add_witness_to_circuit_description(affine.x),
@@ -107,11 +103,7 @@ where
 
     /// Asserts that a [`Point`] in the circuit is equal to a known public
     /// point.
-    pub fn assert_equal_public_point(
-        &mut self,
-        point: Point<P>,
-        public_point: TEGroupAffine<P>,
-    ) {
+    pub fn assert_equal_public_point(&mut self, point: Point<P>, public_point: TEGroupAffine<P>) {
         self.constrain_to_constant(point.x, F::zero(), Some(-public_point.x));
         self.constrain_to_constant(point.y, F::zero(), Some(-public_point.y));
     }
@@ -162,19 +154,14 @@ where
     /// The `bit` used as input which is a [`Variable`] should had previously
     /// been constrained to be either 1 or 0 using a bool constrain. See:
     /// [`StandardComposer::boolean_gate`].
-    pub fn conditional_point_neg(
-        &mut self,
-        bit: Variable,
-        point_b: Point<P>,
-    ) -> Point<P> {
+    pub fn conditional_point_neg(&mut self, bit: Variable, point_b: Point<P>) -> Point<P> {
         let zero = self.zero_var;
         let x = point_b.x;
         let y = point_b.y;
 
         // negation of point (x, y) is (-x, y)
-        let x_neg = self.arithmetic_gate(|gate| {
-            gate.witness(x, zero, None).add(-F::one(), F::zero())
-        });
+        let x_neg =
+            self.arithmetic_gate(|gate| gate.witness(x, zero, None).add(-F::one(), F::zero()));
 
         let x_updated = self.conditional_select(bit, x_neg, x);
 
@@ -194,11 +181,7 @@ where
     /// The `bit` used as input which is a [`Variable`] should have previously
     /// been constrained to be either `1` or `0` using a boolean constraint.
     /// See: [`StandardComposer::boolean_gate`].
-    fn conditional_select_identity(
-        &mut self,
-        bit: Variable,
-        point: Point<P>,
-    ) -> Point<P> {
+    fn conditional_select_identity(&mut self, bit: Variable, point: Point<P>) -> Point<P> {
         Point::new(
             self.conditional_select_zero(bit, point.x),
             self.conditional_select_one(bit, point.y),
@@ -209,10 +192,7 @@ where
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::{
-        batch_test, commitment::HomomorphicCommitment,
-        constraint_system::helper::*,
-    };
+    use crate::{batch_test, commitment::HomomorphicCommitment, constraint_system::helper::*};
     use ark_bls12_377::Bls12_377;
     use ark_bls12_381::Bls12_381;
 
@@ -233,13 +213,11 @@ mod test {
                     composer.add_input(F::from(20u64)),
                 );
 
-                let choice =
-                    composer.conditional_point_select(point_a, point_b, bit_1);
+                let choice = composer.conditional_point_select(point_a, point_b, bit_1);
 
                 composer.assert_equal_point(point_a, choice);
 
-                let choice =
-                    composer.conditional_point_select(point_a, point_b, bit_0);
+                let choice = composer.conditional_point_select(point_a, point_b, bit_0);
                 composer.assert_equal_point(point_b, choice);
             },
             32,
@@ -258,19 +236,14 @@ mod test {
                 let bit_1 = composer.add_input(F::one());
                 let bit_0 = composer.zero_var();
 
-                let point =
-                    TEGroupAffine::<P>::new(F::from(10u64), F::from(20u64));
-                let point_var = Point::new(
-                    composer.add_input(point.x),
-                    composer.add_input(point.y),
-                );
+                let point = TEGroupAffine::<P>::new(F::from(10u64), F::from(20u64));
+                let point_var =
+                    Point::new(composer.add_input(point.x), composer.add_input(point.y));
 
-                let neg_point =
-                    composer.conditional_point_neg(bit_1, point_var);
+                let neg_point = composer.conditional_point_neg(bit_1, point_var);
                 composer.assert_equal_public_point(neg_point, -point);
 
-                let non_neg_point =
-                    composer.conditional_point_neg(bit_0, point_var);
+                let non_neg_point = composer.conditional_point_neg(bit_0, point_var);
                 composer.assert_equal_public_point(non_neg_point, point);
             },
             32,
@@ -286,7 +259,7 @@ mod test {
         ],
         [] => (
             Bls12_381,
-            ark_ed_on_bls12_381::EdwardsParameters
+            ark_ed_on_bls12_381::EdwardsConfig
         )
     );
 
@@ -298,7 +271,7 @@ mod test {
         ],
         [] => (
             Bls12_377,
-            ark_ed_on_bls12_377::EdwardsParameters
+            ark_ed_on_bls12_377::EdwardsConfig
         )
     );
 }

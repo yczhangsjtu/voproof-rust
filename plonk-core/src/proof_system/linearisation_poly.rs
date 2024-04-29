@@ -17,15 +17,12 @@ use crate::{
     },
     util::EvaluationDomainExt,
 };
-use ark_ec::TEModelParameters;
+use ark_ec::twisted_edwards::TECurveConfig as TEModelParameters;
 use ark_ff::{Field, PrimeField};
 use ark_poly::{
-    univariate::DensePolynomial, EvaluationDomain, GeneralEvaluationDomain,
-    Polynomial,
+    univariate::DensePolynomial, EvaluationDomain, GeneralEvaluationDomain, Polynomial,
 };
-use ark_serialize::{
-    CanonicalDeserialize, CanonicalSerialize, Read, SerializationError, Write,
-};
+use ark_serialize::{CanonicalDeserialize, CanonicalSerialize, Read, SerializationError, Write};
 
 /// Subset of the [`ProofEvaluations`]. Evaluations at `z` of the
 /// wire polynomials
@@ -215,12 +212,9 @@ where
         d_eval,
     };
     // Permutation evaluations
-    let left_sigma_eval =
-        prover_key.permutation.left_sigma.0.evaluate(z_challenge);
-    let right_sigma_eval =
-        prover_key.permutation.right_sigma.0.evaluate(z_challenge);
-    let out_sigma_eval =
-        prover_key.permutation.out_sigma.0.evaluate(z_challenge);
+    let left_sigma_eval = prover_key.permutation.left_sigma.0.evaluate(z_challenge);
+    let right_sigma_eval = prover_key.permutation.right_sigma.0.evaluate(z_challenge);
+    let out_sigma_eval = prover_key.permutation.out_sigma.0.evaluate(z_challenge);
     let permutation_eval = z_poly.evaluate(&shifted_z_challenge);
 
     let perm_evals = PermutationEvaluations {
@@ -276,14 +270,10 @@ where
     // (negative_quotient_term):
     // - Z_h(z_challenge) * [t_1(X) + z_challenge^n * t_2(X) + z_challenge^2n *
     //   t_3(X) + z_challenge^3n * t_4(X)]
-    let vanishing_poly_eval =
-        domain.evaluate_vanishing_polynomial(*z_challenge);
+    let vanishing_poly_eval = domain.evaluate_vanishing_polynomial(*z_challenge);
     let z_challenge_to_n = vanishing_poly_eval + F::one();
-    let l1_eval = proof::compute_first_lagrange_evaluation(
-        domain,
-        &vanishing_poly_eval,
-        z_challenge,
-    );
+    let l1_eval =
+        proof::compute_first_lagrange_evaluation(domain, &vanishing_poly_eval, z_challenge);
 
     let lookup_evals = LookupEvaluations {
         q_lookup_eval,
@@ -337,8 +327,7 @@ where
         z_poly,
     )?;
 
-    let quotient_term = &(&(&(&(&(&(&(&(&(&(&(&(&(&(t_8_poly
-        * z_challenge_to_n)
+    let quotient_term = &(&(&(&(&(&(&(&(&(&(&(&(&(&(t_8_poly * z_challenge_to_n)
         + t_7_poly)
         * z_challenge_to_n)
         + t_6_poly)
@@ -355,8 +344,7 @@ where
         * vanishing_poly_eval;
     let negative_quotient_term = &quotient_term * (-F::one());
 
-    let linearisation_polynomial =
-        gate_constraints + permutation + lookup + negative_quotient_term;
+    let linearisation_polynomial = gate_constraints + permutation + lookup + negative_quotient_term;
 
     Ok((
         linearisation_polynomial,

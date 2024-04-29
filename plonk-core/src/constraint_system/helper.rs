@@ -10,25 +10,22 @@ use crate::{
     error::{to_pc_error, Error},
     proof_system::{Prover, Verifier},
 };
-use ark_ec::TEModelParameters;
+use ark_ec::twisted_edwards::TECurveConfig as TEModelParameters;
 use ark_ff::PrimeField;
 use rand_core::OsRng;
 
 /// Adds dummy constraints using arithmetic gates.
 #[allow(dead_code)]
-pub(crate) fn dummy_gadget<F, P>(
-    n: usize,
-    composer: &mut StandardComposer<F, P>,
-) where
+pub(crate) fn dummy_gadget<F, P>(n: usize, composer: &mut StandardComposer<F, P>)
+where
     F: PrimeField,
     P: TEModelParameters<BaseField = F>,
 {
     let one = F::one();
     let var_one = composer.add_input(one);
     for _ in 0..n {
-        composer.arithmetic_gate(|gate| {
-            gate.witness(var_one, var_one, None).add(F::one(), F::one())
-        });
+        composer
+            .arithmetic_gate(|gate| gate.witness(var_one, var_one, None).add(F::one(), F::one()));
     }
 }
 
@@ -45,8 +42,7 @@ where
     PC: HomomorphicCommitment<F>,
 {
     // Common View
-    let universal_params =
-        PC::setup(2 * n, None, &mut OsRng).map_err(to_pc_error::<F, PC>)?;
+    let universal_params = PC::setup(2 * n, None, &mut OsRng).map_err(to_pc_error::<F, PC>)?;
 
     // Provers View
     let (proof, public_inputs) = {
@@ -60,9 +56,8 @@ where
         gadget(prover.mut_cs());
 
         // Commit Key
-        let (ck, _) =
-            PC::trim(&universal_params, prover.circuit_bound(), 0, None)
-                .map_err(to_pc_error::<F, PC>)?;
+        let (ck, _) = PC::trim(&universal_params, prover.circuit_bound(), 0, None)
+            .map_err(to_pc_error::<F, PC>)?;
 
         // Preprocess circuit
         prover.preprocess(&ck)?;
@@ -86,9 +81,8 @@ where
     gadget(verifier.mut_cs());
 
     // Compute Commit and Verifier Key
-    let (ck, vk) =
-        PC::trim(&universal_params, verifier.circuit_bound(), 0, None)
-            .map_err(to_pc_error::<F, PC>)?;
+    let (ck, vk) = PC::trim(&universal_params, verifier.circuit_bound(), 0, None)
+        .map_err(to_pc_error::<F, PC>)?;
 
     // Preprocess circuit
     verifier.preprocess(&ck)?;

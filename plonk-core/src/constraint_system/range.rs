@@ -7,7 +7,7 @@
 //! Range Gate
 
 use crate::constraint_system::{StandardComposer, Variable, WireData};
-use ark_ec::TEModelParameters;
+use ark_ec::twisted_edwards::TECurveConfig as TEModelParameters;
 use ark_ff::{BigInteger, PrimeField};
 
 impl<F, P> StandardComposer<F, P>
@@ -27,9 +27,7 @@ where
     pub fn range_gate(&mut self, witness: Variable, num_bits: usize) {
         // Adds `variable` into the appropriate witness position
         // based on the accumulator number a_i
-        let add_wire = |composer: &mut StandardComposer<F, P>,
-                        i: usize,
-                        variable: Variable| {
+        let add_wire = |composer: &mut StandardComposer<F, P>, i: usize, variable: Variable| {
             // Since four quads can fit into one gate, the gate index does
             // not change for every four wires
             let gate_index = composer.n + (i / 4);
@@ -204,13 +202,10 @@ where
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::{
-        batch_test, commitment::HomomorphicCommitment,
-        constraint_system::helper::*,
-    };
+    use crate::{batch_test, commitment::HomomorphicCommitment, constraint_system::helper::*};
     use ark_bls12_377::Bls12_377;
     use ark_bls12_381::Bls12_381;
-    use ark_ec::models::TEModelParameters;
+    use ark_ec::models::twisted_edwards::TECurveConfig as TEModelParameters;
     use ark_ff::PrimeField;
     fn test_range_constraint<F, P, PC>()
     where
@@ -221,8 +216,7 @@ mod test {
         // Should fail as the number is not 32 bits
         let res = gadget_tester::<F, P, PC>(
             |composer: &mut StandardComposer<F, P>| {
-                let witness =
-                    composer.add_input(F::from((u32::max_value() as u64) + 1));
+                let witness = composer.add_input(F::from((u32::max_value() as u64) + 1));
                 composer.range_gate(witness, 32);
             },
             200,
@@ -259,8 +253,7 @@ mod test {
         // Should fail as the number we we need a even number of bits
         let _ok = gadget_tester::<F, P, PC>(
             |composer: &mut StandardComposer<F, P>| {
-                let witness =
-                    composer.add_input(F::from(u32::max_value() as u64));
+                let witness = composer.add_input(F::from(u32::max_value() as u64));
                 composer.range_gate(witness, 33);
             },
             200,
@@ -272,7 +265,7 @@ mod test {
         [test_range_constraint],
         [test_odd_bit_range]
         => (
-            Bls12_381, ark_ed_on_bls12_381::EdwardsParameters
+            Bls12_381, ark_ed_on_bls12_381::EdwardsConfig
         )
     );
 
@@ -281,7 +274,7 @@ mod test {
         [test_range_constraint],
         [test_odd_bit_range]
         => (
-            Bls12_377, ark_ed_on_bls12_377::EdwardsParameters
+            Bls12_377, ark_ed_on_bls12_377::EdwardsConfig
         )
     );
 }

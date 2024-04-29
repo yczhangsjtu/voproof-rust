@@ -10,7 +10,7 @@
 //! `AND` gate.
 
 use crate::constraint_system::{StandardComposer, Variable, WireData};
-use ark_ec::TEModelParameters;
+use ark_ec::twisted_edwards::TECurveConfig as TEModelParameters;
 use ark_ff::{BigInteger, PrimeField};
 
 impl<F, P> StandardComposer<F, P>
@@ -180,18 +180,9 @@ where
             out_accumulator *= F::from(4u64);
             out_accumulator += out_quad_fr;
             // Apply logic transition constraints.
-            assert!(
-                left_accumulator - (prev_left_accum * F::from(4u64))
-                    < F::from(4u64)
-            );
-            assert!(
-                right_accumulator - (prev_right_accum * F::from(4u64))
-                    < F::from(4u64)
-            );
-            assert!(
-                out_accumulator - (prev_out_accum * F::from(4u64))
-                    < F::from(4u64)
-            );
+            assert!(left_accumulator - (prev_left_accum * F::from(4u64)) < F::from(4u64));
+            assert!(right_accumulator - (prev_right_accum * F::from(4u64)) < F::from(4u64));
+            assert!(out_accumulator - (prev_out_accum * F::from(4u64)) < F::from(4u64));
 
             // Get variables pointing to the previous accumulated values.
             let var_a = self.add_input(left_accumulator);
@@ -330,12 +321,7 @@ where
     /// # Panics
     ///
     /// If the `num_bits` specified in the fn params is odd.
-    pub fn xor_gate(
-        &mut self,
-        a: Variable,
-        b: Variable,
-        num_bits: usize,
-    ) -> Variable {
+    pub fn xor_gate(&mut self, a: Variable, b: Variable, num_bits: usize) -> Variable {
         self.logic_gate(a, b, num_bits, true)
     }
 
@@ -346,12 +332,7 @@ where
     /// # Panics
     ///
     /// If the `num_bits` specified in the fn params is odd.
-    pub fn and_gate(
-        &mut self,
-        a: Variable,
-        b: Variable,
-        num_bits: usize,
-    ) -> Variable {
+    pub fn and_gate(&mut self, a: Variable, b: Variable, num_bits: usize) -> Variable {
         self.logic_gate(a, b, num_bits, false)
     }
 }
@@ -359,12 +340,12 @@ where
 #[cfg(test)]
 mod test {
     use crate::{
-        batch_test, commitment::HomomorphicCommitment,
-        constraint_system::helper::*, constraint_system::StandardComposer,
+        batch_test, commitment::HomomorphicCommitment, constraint_system::helper::*,
+        constraint_system::StandardComposer,
     };
     use ark_bls12_377::Bls12_377;
     use ark_bls12_381::Bls12_381;
-    use ark_ec::TEModelParameters;
+    use ark_ec::twisted_edwards::TECurveConfig as TEModelParameters;
     use ark_ff::PrimeField;
     fn test_logic_xor_and_constraint<F, P, PC>()
     where
@@ -379,11 +360,7 @@ mod test {
                 let witness_b = composer.add_input(F::from(357u64));
                 let xor_res = composer.xor_gate(witness_a, witness_b, 10);
                 // Check that the XOR result is indeed what we are expecting.
-                composer.constrain_to_constant(
-                    xor_res,
-                    F::from(500u64 ^ 357u64),
-                    None,
-                );
+                composer.constrain_to_constant(xor_res, F::from(500u64 ^ 357u64), None);
             },
             200,
         );
@@ -396,11 +373,7 @@ mod test {
                 let witness_b = composer.add_input(F::from(321u64));
                 let xor_res = composer.and_gate(witness_a, witness_b, 10);
                 // Check that the AND result is indeed what we are expecting.
-                composer.constrain_to_constant(
-                    xor_res,
-                    F::from(469u64 & 321u64),
-                    None,
-                );
+                composer.constrain_to_constant(xor_res, F::from(469u64 & 321u64), None);
             },
             200,
         );
@@ -414,11 +387,7 @@ mod test {
                 let witness_b = composer.add_input(F::from(33u64));
                 let xor_res = composer.xor_gate(witness_a, witness_b, 10);
                 // Check that the XOR result is indeed what we are expecting.
-                composer.constrain_to_constant(
-                    xor_res,
-                    F::from(139u64 & 33u64),
-                    None,
-                );
+                composer.constrain_to_constant(xor_res, F::from(139u64 & 33u64), None);
             },
             200,
         );
@@ -431,11 +400,7 @@ mod test {
                 let witness_b = composer.add_input(F::from(235u64));
                 let xor_res = composer.xor_gate(witness_a, witness_b, 2);
                 // Check that the XOR result is indeed what we are expecting.
-                composer.constrain_to_constant(
-                    xor_res,
-                    F::from(256u64 ^ 235u64),
-                    None,
-                );
+                composer.constrain_to_constant(xor_res, F::from(256u64 ^ 235u64), None);
             },
             200,
         );
@@ -466,7 +431,7 @@ mod test {
         [test_logic_xor_and_constraint],
         [test_logical_gate_odd_bit_num]
         => (
-            Bls12_381, ark_ed_on_bls12_381::EdwardsParameters      )
+            Bls12_381, ark_ed_on_bls12_381::EdwardsConfig      )
     );
 
     // Test for Bls12_377
@@ -474,6 +439,6 @@ mod test {
         [test_logic_xor_and_constraint],
         [test_logical_gate_odd_bit_num]
         => (
-            Bls12_377, ark_ed_on_bls12_377::EdwardsParameters       )
+            Bls12_377, ark_ed_on_bls12_377::EdwardsConfig       )
     );
 }

@@ -10,7 +10,7 @@
 
 use ark_bls12_377::Bls12_377;
 use ark_bls12_381::Bls12_381;
-use ark_ec::{PairingEngine, TEModelParameters};
+use ark_ec::{Pairing as PairingEngine, TEModelParameters};
 use ark_ed_on_bls12_381::EdwardsParameters;
 use ark_ff::{FftField, PrimeField};
 use blake2;

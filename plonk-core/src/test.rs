@@ -88,12 +88,12 @@ macro_rules! batch_test {
                 #[test]
                 #[allow(non_snake_case)]
                 fn [< $test_set _on_ $engine _kzg>]() {
-                    $test_set::<<$engine as ark_ec::PairingEngine>::Fr, $params, $crate::commitment::KZG10<$engine>>()
+                    $test_set::<<$engine as ark_ec::Pairing>::Fr, $params, $crate::commitment::KZG10<$engine>>()
                 }
                 #[test]
                 #[allow(non_snake_case)]
                 fn [< $test_set _on_ $engine _ipa>]() {
-                    $test_set::<<$engine as ark_ec::PairingEngine>::Fr, $params, ark_poly_commit::ipa_pc::InnerProductArgPC<<$engine as ark_ec::PairingEngine>::G1Affine, blake2::Blake2s, ark_poly::univariate::DensePolynomial<<$engine as ark_ec::PairingEngine>::Fr>>>()
+                    $test_set::<<$engine as ark_ec::Pairing>::Fr, $params, ark_poly_commit::ipa_pc::InnerProductArgPC<<$engine as ark_ec::Pairing>::G1Affine, blake2::Blake2s, ark_poly::univariate::DensePolynomial<<$engine as ark_ec::PairingEngine>::Fr>>>()
                 }
             )*
             $(
@@ -101,13 +101,13 @@ macro_rules! batch_test {
                 #[should_panic]
                 #[allow(non_snake_case)]
                 fn [< $test_panic_set _on_ $engine _kzg>]() {
-                    $test_panic_set::<<$engine as ark_ec::PairingEngine>::Fr, $params, $crate::commitment::KZG10<$engine>>()
+                    $test_panic_set::<<$engine as ark_ec::Pairing>::Fr, $params, $crate::commitment::KZG10<$engine>>()
                 }
                 #[test]
                 #[should_panic]
                 #[allow(non_snake_case)]
                 fn [< $test_panic_set _on_ $engine _ipa>]() {
-                    $test_panic_set::<<$engine as ark_ec::PairingEngine>::Fr, $params, ark_poly_commit::ipa_pc::InnerProductArgPC<<$engine as ark_ec::PairingEngine>::G1Affine, blake2::Blake2s, ark_poly::univariate::DensePolynomial<<$engine as ark_ec::PairingEngine>::Fr>>>()
+                    $test_panic_set::<<$engine as ark_ec::Pairing>::Fr, $params, ark_poly_commit::ipa_pc::InnerProductArgPC<<$engine as ark_ec::PairingEngine>::G1Affine, blake2::Blake2s, ark_poly::univariate::DensePolynomial<<$engine as ark_ec::PairingEngine>::Fr>>>()
                 }
             )*
         }

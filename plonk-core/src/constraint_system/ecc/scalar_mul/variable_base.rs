@@ -6,11 +6,9 @@
 
 //! Variable-base Scalar Multiplication Gate
 
-use crate::constraint_system::{
-    ecc::Point, variable::Variable, StandardComposer,
-};
-use ark_ec::TEModelParameters;
-use ark_ff::{BigInteger, FpParameters, PrimeField};
+use crate::constraint_system::{ecc::Point, variable::Variable, StandardComposer};
+use ark_ec::twisted_edwards::TECurveConfig as TEModelParameters;
+use ark_ff::{BigInteger, FpConfig as FpParameters, PrimeField};
 
 impl<F, P> StandardComposer<F, P>
 where
@@ -24,11 +22,7 @@ where
     /// If you're planning to multiply always by the generator of the scalar
     /// field, you should use [`StandardComposer::fixed_base_scalar_mul`]
     /// which is optimized for fixed_base ops.
-    pub fn variable_base_scalar_mul(
-        &mut self,
-        curve_var: Variable,
-        point: Point<P>,
-    ) -> Point<P> {
+    pub fn variable_base_scalar_mul(&mut self, curve_var: Variable, point: Point<P>) -> Point<P> {
         // Turn scalar into bits
         let raw_scalar = *self
             .variables
@@ -53,11 +47,7 @@ where
         result
     }
 
-    fn scalar_decomposition(
-        &mut self,
-        witness_var: Variable,
-        witness_scalar: F,
-    ) -> Vec<Variable> {
+    fn scalar_decomposition(&mut self, witness_var: Variable, witness_scalar: F) -> Vec<Variable> {
         // Decompose the bits
         let scalar_bits_iter = witness_scalar.into_repr().to_bits_le();
 
@@ -68,9 +58,8 @@ where
             .collect();
 
         // Take the first 252 bits
-        let scalar_bits_var = scalar_bits_var
-            [..<F as PrimeField>::Params::MODULUS_BITS as usize]
-            .to_vec();
+        let scalar_bits_var =
+            scalar_bits_var[..<F as PrimeField>::MODULUS_BIT_SIZE as usize].to_vec();
 
         // Now ensure that the bits correctly accumulate to the witness given
         let mut accumulator_var = self.zero_var;
@@ -86,8 +75,7 @@ where
                     .add(two_pow, F::one())
             });
 
-            accumulator_scalar +=
-                two_pow * F::from(scalar_bits_iter[power] as u64);
+            accumulator_scalar += two_pow * F::from(scalar_bits_iter[power] as u64);
         }
         self.assert_equal(accumulator_var, witness_var);
 
@@ -99,15 +87,11 @@ where
 mod test {
     use super::*;
     use crate::{
-        batch_test, commitment::HomomorphicCommitment,
-        constraint_system::helper::*, util,
+        batch_test, commitment::HomomorphicCommitment, constraint_system::helper::*, util,
     };
     use ark_bls12_377::Bls12_377;
     use ark_bls12_381::Bls12_381;
-    use ark_ec::{
-        twisted_edwards_extended::GroupAffine as TEGroupAffine, AffineCurve,
-        TEModelParameters,
-    };
+    use ark_ec::{twisted_edwards::Affine as TEGroupAffine, AffineRepr as AffineCurve};
 
     fn test_var_base_scalar_mul<F, P, PC>()
     where
@@ -118,10 +102,9 @@ mod test {
         let res = gadget_tester::<F, P, PC>(
             |composer: &mut StandardComposer<F, P>| {
                 let scalar = F::from_le_bytes_mod_order(&[
-                    182, 44, 247, 214, 94, 14, 151, 208, 130, 16, 200, 204,
-                    147, 32, 104, 166, 0, 59, 52, 1, 1, 59, 103, 6, 169, 175,
-                    51, 101, 234, 180, 125, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                    182, 44, 247, 214, 94, 14, 151, 208, 130, 16, 200, 204, 147, 32, 104, 166, 0,
+                    59, 52, 1, 1, 59, 103, 6, 169, 175, 51, 101, 234, 180, 125, 4, 0, 0, 0, 0, 0,
+                    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
                     0,
                 ]);
                 let secret_scalar = composer.add_input(scalar);
@@ -129,19 +112,15 @@ mod test {
                 let (x, y) = P::AFFINE_GENERATOR_COEFFS;
                 let generator = TEGroupAffine::new(x, y);
 
-                let expected_point: TEGroupAffine<P> = AffineCurve::mul(
-                    &generator,
-                    util::to_embedded_curve_scalar::<F, P>(scalar),
-                )
-                .into();
+                let expected_point: TEGroupAffine<P> =
+                    AffineCurve::mul(&generator, util::to_embedded_curve_scalar::<F, P>(scalar))
+                        .into();
 
                 let point = composer.add_affine(generator);
 
-                let point_scalar =
-                    composer.variable_base_scalar_mul(secret_scalar, point);
+                let point_scalar = composer.variable_base_scalar_mul(secret_scalar, point);
 
-                composer
-                    .assert_equal_public_point(point_scalar, expected_point);
+                composer.assert_equal_public_point(point_scalar, expected_point);
             },
             4096,
         );
@@ -153,7 +132,7 @@ mod test {
         [test_var_base_scalar_mul],
         [] => (
             Bls12_381,
-            ark_ed_on_bls12_381::EdwardsParameters
+            ark_ed_on_bls12_381::EdwardsConfig
         )
     );
 
@@ -162,7 +141,7 @@ mod test {
         [test_var_base_scalar_mul],
         [] => (
             Bls12_377,
-            ark_ed_on_bls12_377::EdwardsParameters
+            ark_ed_on_bls12_377::EdwardsConfig
         )
     );
 }

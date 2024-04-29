@@ -16,14 +16,15 @@ use crate::{
     commitment::HomomorphicCommitment,
     lookup::MultiSet,
     proof_system::{
-        linearisation_poly::CustomEvaluations,
-        linearisation_poly::ProofEvaluations, permutation,
+        linearisation_poly::CustomEvaluations, linearisation_poly::ProofEvaluations, permutation,
     },
     transcript::TranscriptProtocol,
 };
 use ark_ff::PrimeField;
 use ark_poly::{univariate::DensePolynomial, Evaluations};
 use ark_serialize::*;
+use crypto_primitives_voproof::sponge::CryptographicSponge;
+
 
 /// Set of values needed for a custom gate
 pub trait CustomValues<F>
@@ -86,8 +87,7 @@ where
         wit_vals: WitnessValues<F>,
         custom_vals: Self::CustomVals,
     ) -> F {
-        selector
-            * Self::constraints(separation_challenge, wit_vals, custom_vals)
+        selector * Self::constraints(separation_challenge, wit_vals, custom_vals)
     }
 
     /// Computes the linearisation polynomial term for the given gate type
@@ -99,8 +99,7 @@ where
         wit_vals: WitnessValues<F>,
         custom_vals: Self::CustomVals,
     ) -> DensePolynomial<F> {
-        selector_polynomial
-            * Self::constraints(separation_challenge, wit_vals, custom_vals)
+        selector_polynomial * Self::constraints(separation_challenge, wit_vals, custom_vals)
     }
 
     /// Extends `scalars` and `points` to build the linearisation commitment
@@ -141,20 +140,19 @@ where
         bound = "arithmetic::VerifierKey<F,PC>: core::fmt::Debug, PC::Commitment: core::fmt::Debug"
     ),
     Eq(bound = "arithmetic::VerifierKey<F,PC>: Eq, PC::Commitment: Eq"),
-    PartialEq(
-        bound = "arithmetic::VerifierKey<F,PC>: PartialEq, PC::Commitment: PartialEq"
-    )
+    PartialEq(bound = "arithmetic::VerifierKey<F,PC>: PartialEq, PC::Commitment: PartialEq")
 )]
-pub struct VerifierKey<F, PC>
+pub struct VerifierKey<F, PC, S>
 where
     F: PrimeField,
-    PC: HomomorphicCommitment<F>,
+    PC: HomomorphicCommitment<F, S>,
+    S: CryptographicSponge,
 {
     /// Circuit size (not padded to a power of two).
     pub(crate) n: usize,
 
     /// Arithmetic Verifier Key
-    pub(crate) arithmetic: arithmetic::VerifierKey<F, PC>,
+    pub(crate) arithmetic: arithmetic::VerifierKey<F, PC, S>,
 
     /// Range Gate Selector Commitment
     pub(crate) range_selector_commitment: PC::Commitment,
@@ -172,7 +170,7 @@ where
     pub(crate) permutation: permutation::VerifierKey<PC::Commitment>,
 
     /// VerifierKey for Lookup Gate
-    pub(crate) lookup: lookup::VerifierKey<F, PC>,
+    pub(crate) lookup: lookup::VerifierKey<F, PC, S>,
 }
 
 impl<F, PC> VerifierKey<F, PC>
@@ -321,8 +319,7 @@ where
     pub(crate) fixed_group_add_selector: (DensePolynomial<F>, Evaluations<F>),
 
     /// Variable Group Addition Selector
-    pub(crate) variable_group_add_selector:
-        (DensePolynomial<F>, Evaluations<F>),
+    pub(crate) variable_group_add_selector: (DensePolynomial<F>, Evaluations<F>),
 
     /// ProverKey for permutation checks
     pub(crate) permutation: permutation::ProverKey<F>,
@@ -418,7 +415,7 @@ mod test {
     use crate::batch_test;
     use ark_bls12_377::Bls12_377;
     use ark_bls12_381::Bls12_381;
-    use ark_ec::models::TEModelParameters;
+    use ark_ec::models::twisted_edwards::TECurveConfig as TEModelParameters;
     use ark_poly::polynomial::univariate::DensePolynomial;
     use ark_poly::{EvaluationDomain, GeneralEvaluationDomain, UVPolynomial};
     use rand_core::OsRng;
@@ -518,8 +515,7 @@ mod test {
             .unwrap();
 
         let obtained_pk: ProverKey<F> =
-            ProverKey::deserialize_unchecked(prover_key_bytes.as_slice())
-                .unwrap();
+            ProverKey::deserialize_unchecked(prover_key_bytes.as_slice()).unwrap();
 
         assert_eq!(prover_key, obtained_pk);
     }
@@ -595,8 +591,7 @@ mod test {
             .unwrap();
 
         let obtained_vk: VerifierKey<F, PC> =
-            VerifierKey::deserialize_unchecked(verifier_key_bytes.as_slice())
-                .unwrap();
+            VerifierKey::deserialize_unchecked(verifier_key_bytes.as_slice()).unwrap();
 
         assert!(verifier_key == obtained_vk);
     }

@@ -7,8 +7,8 @@
 //! Variable-base Curve Addition Gate
 
 use crate::constraint_system::{ecc::Point, StandardComposer};
-use ark_ec::models::{
-    twisted_edwards_extended::GroupAffine as TEGroupAffine, TEModelParameters,
+use ark_ec::models::twisted_edwards::{
+    Affine as TEGroupAffine, TECurveConfig as TEModelParameters,
 };
 use ark_ff::PrimeField;
 
@@ -21,11 +21,7 @@ where
     /// Note that since the points are not fixed the generator is not a part of
     /// the circuit description, however it is less efficient for a program
     /// width of 4.
-    pub fn point_addition_gate(
-        &mut self,
-        point_a: Point<P>,
-        point_b: Point<P>,
-    ) -> Point<P> {
+    pub fn point_addition_gate(&mut self, point_a: Point<P>, point_b: Point<P>) -> Point<P> {
         // In order to verify that two points were correctly added
         // without going over a degree 4 polynomial, we will need
         // x_1, y_1, x_2, y_2
@@ -85,13 +81,8 @@ where
         self.perm.add_variables_to_map(x_1, y_1, x_2, y_2, self.n);
         self.n += 1;
 
-        self.perm.add_variables_to_map(
-            x_3,
-            y_3,
-            self.zero_var,
-            x_1_y_2,
-            self.n,
-        );
+        self.perm
+            .add_variables_to_map(x_3, y_3, self.zero_var, x_1_y_2, self.n);
         self.n += 1;
 
         Point::<P>::new(x_3, y_3)
@@ -127,31 +118,24 @@ mod test {
         let y2 = point_b.y;
 
         // x1 * y2
-        let x1_y2 = composer
-            .arithmetic_gate(|gate| gate.mul(F::one()).witness(x1, y2, None));
+        let x1_y2 = composer.arithmetic_gate(|gate| gate.mul(F::one()).witness(x1, y2, None));
         // y1 * x2
-        let y1_x2 = composer
-            .arithmetic_gate(|gate| gate.mul(F::one()).witness(y1, x2, None));
+        let y1_x2 = composer.arithmetic_gate(|gate| gate.mul(F::one()).witness(y1, x2, None));
         // y1 * y2
-        let y1_y2 = composer
-            .arithmetic_gate(|gate| gate.mul(F::one()).witness(y1, y2, None));
+        let y1_y2 = composer.arithmetic_gate(|gate| gate.mul(F::one()).witness(y1, y2, None));
         // x1 * x2
-        let x1_x2 = composer
-            .arithmetic_gate(|gate| gate.mul(F::one()).witness(x1, x2, None));
+        let x1_x2 = composer.arithmetic_gate(|gate| gate.mul(F::one()).witness(x1, x2, None));
         // d x1x2 * y1y2
-        let d_x1_x2_y1_y2 = composer.arithmetic_gate(|gate| {
-            gate.mul(P::COEFF_D).witness(x1_x2, y1_y2, None)
-        });
+        let d_x1_x2_y1_y2 =
+            composer.arithmetic_gate(|gate| gate.mul(P::COEFF_D).witness(x1_x2, y1_y2, None));
 
         // x1y2 + y1x2
-        let x_numerator = composer.arithmetic_gate(|gate| {
-            gate.witness(x1_y2, y1_x2, None).add(F::one(), F::one())
-        });
+        let x_numerator = composer
+            .arithmetic_gate(|gate| gate.witness(x1_y2, y1_x2, None).add(F::one(), F::one()));
 
         // y1y2 - a * x1x2
-        let y_numerator = composer.arithmetic_gate(|gate| {
-            gate.witness(y1_y2, x1_x2, None).add(F::one(), -P::COEFF_A)
-        });
+        let y_numerator = composer
+            .arithmetic_gate(|gate| gate.witness(y1_y2, x1_x2, None).add(F::one(), -P::COEFF_A));
 
         // 1 + dx1x2y1y2
         let x_denominator = composer.arithmetic_gate(|gate| {
@@ -202,13 +186,11 @@ mod test {
 
         // We can now use the inverses
 
-        let x_3 = composer.arithmetic_gate(|gate| {
-            gate.mul(F::one()).witness(inv_x_denom, x_numerator, None)
-        });
+        let x_3 = composer
+            .arithmetic_gate(|gate| gate.mul(F::one()).witness(inv_x_denom, x_numerator, None));
 
-        let y_3 = composer.arithmetic_gate(|gate| {
-            gate.mul(F::one()).witness(inv_y_denom, y_numerator, None)
-        });
+        let y_3 = composer
+            .arithmetic_gate(|gate| gate.mul(F::one()).witness(inv_y_denom, y_numerator, None));
 
         Point::new(x_3, y_3)
     }
@@ -230,8 +212,7 @@ mod test {
                 let point_b = Point::new(x_var, y_var);
 
                 let point = composer.point_addition_gate(point_a, point_b);
-                let point2 =
-                    classical_point_addition(composer, point_a, point_b);
+                let point2 = classical_point_addition(composer, point_a, point_b);
 
                 composer.assert_equal_point(point, point2);
 
@@ -247,7 +228,7 @@ mod test {
         []
         => (
             Bls12_381,
-            ark_ed_on_bls12_381::EdwardsParameters
+            ark_ed_on_bls12_381::EdwardsConfig
         )
     );
 
@@ -255,7 +236,7 @@ mod test {
         [test_curve_addition],
         [] => (
             Bls12_377,
-            ark_ed_on_bls12_377::EdwardsParameters
+            ark_ed_on_bls12_377::EdwardsConfig
         )
     );
 }

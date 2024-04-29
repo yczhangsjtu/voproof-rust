@@ -3,19 +3,17 @@ use ark_ec::{msm::VariableBaseMSM, AffineCurve, PairingEngine};
 use ark_ff::{Field, PrimeField};
 use ark_poly::univariate::DensePolynomial;
 use ark_poly_commit::{sonic_pc::SonicKZG10, PolynomialCommitment};
+use crypto_primitives_voproof::sponge::CryptographicSponge;
 
 /// A homomorphic polynomial commitment
-pub trait HomomorphicCommitment<F>:
-    PolynomialCommitment<F, DensePolynomial<F>>
+pub trait HomomorphicCommitment<F, S: CryptographicSponge>:
+    PolynomialCommitment<F, DensePolynomial<F>, S>
 where
     F: PrimeField,
     Self::VerifierKey: core::fmt::Debug,
 {
     /// Combine a linear combination of homomorphic commitments
-    fn multi_scalar_mul(
-        commitments: &[Self::Commitment],
-        scalars: &[F],
-    ) -> Self::Commitment;
+    fn multi_scalar_mul(commitments: &[Self::Commitment], scalars: &[F]) -> Self::Commitment;
 }
 
 /// The Default KZG-style commitment scheme
@@ -42,8 +40,7 @@ where
         let points_repr = commitments.iter().map(|c| c.0).collect::<Vec<_>>();
 
         ark_poly_commit::kzg10::Commitment::<E>(
-            VariableBaseMSM::multi_scalar_mul(&points_repr, &scalars_repr)
-                .into(),
+            VariableBaseMSM::multi_scalar_mul(&points_repr, &scalars_repr).into(),
         )
     }
 }
@@ -61,8 +58,8 @@ pub type IPACommitment<G, D> = <IPA<G, D> as PolynomialCommitment<
 >>::Commitment;
 
 use blake2::digest::Digest;
-impl<G, D> HomomorphicCommitment<<G as ark_ec::AffineCurve>::ScalarField>
-    for IPA<G, D>
+use crypto_primitives_voproof::sponge::CryptographicSponge;
+impl<G, D> HomomorphicCommitment<<G as ark_ec::AffineCurve>::ScalarField> for IPA<G, D>
 where
     G: AffineCurve,
     D: Digest,
@@ -76,15 +73,10 @@ where
             .map(<G as ark_ec::AffineCurve>::ScalarField::into_repr)
             .collect::<Vec<_>>();
 
-        let points_repr =
-            commitments.iter().map(|c| c.comm).collect::<Vec<_>>();
+        let points_repr = commitments.iter().map(|c| c.comm).collect::<Vec<_>>();
 
         IPACommitment::<G, D> {
-            comm: VariableBaseMSM::multi_scalar_mul(
-                &points_repr,
-                &scalars_repr,
-            )
-            .into(),
+            comm: VariableBaseMSM::multi_scalar_mul(&points_repr, &scalars_repr).into(),
             shifted_comm: None, // TODO: support degree bounds?
         }
     }

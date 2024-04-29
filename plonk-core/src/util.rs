@@ -4,8 +4,8 @@
 //
 // Copyright (c) DUSK NETWORK. All rights reserved.
 
-use ark_ec::{ModelParameters, TEModelParameters};
-use ark_ff::{BigInteger, FftField, Field, FpParameters, PrimeField};
+use ark_ec::{twisted_edwards::TECurveConfig as TEModelParameters, CurveConfig as ModelParameters};
+use ark_ff::{BigInteger, FftField, Field, FpConfig as FpParameters, PrimeField};
 use ark_poly::{EvaluationDomain, GeneralEvaluationDomain};
 use core::ops::Mul;
 use std::ops::Add;
@@ -49,9 +49,7 @@ where
     fn log_size_of_group(&self) -> u32 {
         match self {
             GeneralEvaluationDomain::Radix2(domain) => domain.log_size_of_group,
-            GeneralEvaluationDomain::MixedRadix(domain) => {
-                domain.log_size_of_group
-            }
+            GeneralEvaluationDomain::MixedRadix(domain) => domain.log_size_of_group,
         }
     }
 
@@ -92,27 +90,27 @@ where
 /// curve. Panics if the embedded scalar is greater than the modulus of the
 /// pairing firendly curve scalar field
 #[allow(dead_code)]
-pub fn from_embedded_curve_scalar<F, P>(
-    embedded_scalar: <P as ModelParameters>::ScalarField,
-) -> F
+pub fn from_embedded_curve_scalar<F, P>(embedded_scalar: <P as ModelParameters>::ScalarField) -> F
 where
     F: PrimeField,
     P: TEModelParameters<BaseField = F>,
 {
     let scalar_repr = embedded_scalar.into_repr();
-    let modulus = <<F as PrimeField>::Params as FpParameters>::MODULUS;
+    let modulus = <F as PrimeField>::MODULUS;
     if modulus.num_bits() >= scalar_repr.num_bits() {
-        let s = <<F as PrimeField>::BigInt as BigInteger>::from_bits_le(
-            &scalar_repr.to_bits_le(),
+        let s = <<F as PrimeField>::BigInt as BigInteger>::from_bits_le(&scalar_repr.to_bits_le());
+        assert!(
+            s < modulus,
+            "The embedded scalar exceeds the capacity representation of the outter curve scalar"
         );
-        assert!(s < modulus,
-            "The embedded scalar exceeds the capacity representation of the outter curve scalar");
     } else {
         let m = <<P::ScalarField as PrimeField>::BigInt as BigInteger>::from_bits_le(
             &modulus.to_bits_le(),
         );
-        assert!(scalar_repr < m,
-            "The embedded scalar exceeds the capacity representation of the outter curve scalar");
+        assert!(
+            scalar_repr < m,
+            "The embedded scalar exceeds the capacity representation of the outter curve scalar"
+        );
     }
     F::from_le_bytes_mod_order(&scalar_repr.to_bytes_le())
 }
@@ -127,20 +125,21 @@ where
     P: TEModelParameters<BaseField = F>,
 {
     let scalar_repr = pfc_scalar.into_repr();
-    let modulus =
-        <<P::ScalarField as PrimeField>::Params as FpParameters>::MODULUS;
+    let modulus = <P::ScalarField as PrimeField>::MODULUS;
     if modulus.num_bits() >= scalar_repr.num_bits() {
         let s = <<P::ScalarField as PrimeField>::BigInt as BigInteger>::from_bits_le(
             &scalar_repr.to_bits_le(),
         );
-        assert!(s < modulus,
-            "The embedded scalar exceeds the capacity representation of the outter curve scalar");
-    } else {
-        let m = <<F as PrimeField>::BigInt as BigInteger>::from_bits_le(
-            &modulus.to_bits_le(),
+        assert!(
+            s < modulus,
+            "The embedded scalar exceeds the capacity representation of the outter curve scalar"
         );
-        assert!(scalar_repr < m,
-            "The embedded scalar exceeds the capacity representation of the outter curve scalar");
+    } else {
+        let m = <<F as PrimeField>::BigInt as BigInteger>::from_bits_le(&modulus.to_bits_le());
+        assert!(
+            scalar_repr < m,
+            "The embedded scalar exceeds the capacity representation of the outter curve scalar"
+        );
     }
     P::ScalarField::from_le_bytes_mod_order(&scalar_repr.to_bytes_le())
 }
@@ -160,7 +159,7 @@ where
 
     let kth_val = match values.last() {
         Some(val) => val.clone(),
-        _ => panic!("At least one value must be provided to compute a linear combination")
+        _ => panic!("At least one value must be provided to compute a linear combination"),
     };
 
     values
@@ -187,11 +186,7 @@ macro_rules! label_polynomial {
 #[macro_export]
 macro_rules! label_commitment {
     ($comm:expr) => {
-        ark_poly_commit::LabeledCommitment::new(
-            stringify!($comm).to_owned(),
-            $comm.clone(),
-            None,
-        )
+        ark_poly_commit::LabeledCommitment::new(stringify!($comm).to_owned(), $comm.clone(), None)
     };
 }
 

@@ -17,18 +17,21 @@ use ark_ec::TEModelParameters;
 use ark_ff::PrimeField;
 use core::marker::PhantomData;
 use merlin::Transcript;
+use crypto_primitives_voproof::sponge::CryptographicSponge;
+
 
 use super::pi::PublicInputs;
 
 /// Abstraction structure designed verify [`Proof`]s.
-pub struct Verifier<F, P, PC>
+pub struct Verifier<F, P, PC, S>
 where
     F: PrimeField,
     P: TEModelParameters<BaseField = F>,
     PC: HomomorphicCommitment<F>,
+    S: CryptographicSponge,
 {
     /// VerificationKey which is used to verify a specific PLONK circuit
-    pub verifier_key: Option<PlonkVerifierKey<F, PC>>,
+    pub verifier_key: Option<PlonkVerifierKey<F, PC, S>>,
 
     /// Circuit Description
     pub(crate) cs: StandardComposer<F, P>,

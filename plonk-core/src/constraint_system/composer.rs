@@ -14,13 +14,13 @@
 //! It allows us not only to build Add and Mul constraints but also to build
 //! ECC op. gates, Range checks, Logical gates (Bitwise ops) etc.
 
-use crate::{
-    constraint_system::Variable, error::Error, permutation::Permutation,
-};
+use crate::{constraint_system::Variable, error::Error, permutation::Permutation};
 
 use crate::lookup::LookupTable;
 use crate::proof_system::pi::PublicInputs;
-use ark_ec::{models::TEModelParameters, ModelParameters};
+use ark_ec::{
+    models::twisted_edwards::TECurveConfig as TEModelParameters, CurveConfig as ModelParameters,
+};
 use ark_ff::{PrimeField, ToConstraintField};
 use core::cmp::max;
 use core::marker::PhantomData;
@@ -153,11 +153,7 @@ where
 
     /// Insert data in the PI starting at the given position and stores the
     /// occupied positions as intended for public inputs.
-    pub(crate) fn add_pi<T>(
-        &mut self,
-        pos: usize,
-        item: &T,
-    ) -> Result<(), Error>
+    pub(crate) fn add_pi<T>(&mut self, pos: usize, item: &T) -> Result<(), Error>
     where
         T: ToConstraintField<F>,
     {
@@ -239,8 +235,7 @@ where
         };
 
         // Reserve the first variable to be zero
-        composer.zero_var =
-            composer.add_witness_to_circuit_description(F::zero());
+        composer.zero_var = composer.add_witness_to_circuit_description(F::zero());
 
         // Add dummy constraints
         composer.add_blinding_factors(&mut rand_core::OsRng);
@@ -315,9 +310,8 @@ where
         self.q_h4.push(F::zero());
 
         if let Some(pi) = pi {
-            self.add_pi(self.n, &pi).unwrap_or_else(|_| {
-                panic!("Could not insert PI {:?} at {}", pi, self.n)
-            });
+            self.add_pi(self.n, &pi)
+                .unwrap_or_else(|_| panic!("Could not insert PI {:?} at {}", pi, self.n));
         };
 
         self.perm
@@ -331,12 +325,7 @@ where
     /// a specific constant value which is part of the circuit description and
     /// **NOT** a Public Input. ie. this value will be the same for all of the
     /// circuit instances and [`Proof`](crate::proof_system::Proof)s generated.
-    pub fn constrain_to_constant(
-        &mut self,
-        a: Variable,
-        constant: F,
-        pi: Option<F>,
-    ) {
+    pub fn constrain_to_constant(&mut self, a: Variable, constant: F, pi: Option<F>) {
         self.poly_gate(
             a,
             a,
@@ -384,9 +373,7 @@ where
         // a * y + b - 1 = 0
         // a * b = 0
         // where y is auxiliary and b is the boolean (a == 0).
-        let _a_times_b = self.arithmetic_gate(|gate| {
-            gate.witness(a, b, Some(zero)).mul(F::one())
-        });
+        let _a_times_b = self.arithmetic_gate(|gate| gate.witness(a, b, Some(zero)).mul(F::one()));
 
         let _first_constraint = self.arithmetic_gate(|gate| {
             gate.witness(a, y, Some(zero))
@@ -401,9 +388,8 @@ where
     /// A gate which outputs a variable whose value is 1 if the
     /// two input variables have equal values and whose value is 0 otherwise.
     pub fn is_eq_with_output(&mut self, a: Variable, b: Variable) -> Variable {
-        let difference = self.arithmetic_gate(|gate| {
-            gate.witness(a, b, None).add(F::one(), -F::one())
-        });
+        let difference =
+            self.arithmetic_gate(|gate| gate.witness(a, b, None).add(F::one(), -F::one()));
         self.is_zero_with_output(difference)
     }
 
@@ -425,9 +411,8 @@ where
     ) -> Variable {
         let zero = self.zero_var;
         // bit * choice_a
-        let bit_times_a = self.arithmetic_gate(|gate| {
-            gate.witness(bit, choice_a, None).mul(F::one())
-        });
+        let bit_times_a =
+            self.arithmetic_gate(|gate| gate.witness(bit, choice_a, None).mul(F::one()));
 
         // 1 - bit
         let one_min_bit = self.arithmetic_gate(|gate| {
@@ -437,9 +422,8 @@ where
         });
 
         // (1 - bit) * b
-        let one_min_bit_choice_b = self.arithmetic_gate(|gate| {
-            gate.witness(one_min_bit, choice_b, None).mul(F::one())
-        });
+        let one_min_bit_choice_b =
+            self.arithmetic_gate(|gate| gate.witness(one_min_bit, choice_b, None).mul(F::one()));
 
         // [ (1 - bit) * b ] + [ bit * a ]
         self.arithmetic_gate(|gate| {
@@ -457,15 +441,9 @@ where
     /// The `bit` used as input which is a [`Variable`] should have previously
     /// been constrained to be either 1 or 0 using a bool constrain. See:
     /// [`StandardComposer::boolean_gate`].
-    pub fn conditional_select_zero(
-        &mut self,
-        bit: Variable,
-        value: Variable,
-    ) -> Variable {
+    pub fn conditional_select_zero(&mut self, bit: Variable, value: Variable) -> Variable {
         // returns bit * value
-        self.arithmetic_gate(|gate| {
-            gate.witness(bit, value, None).mul(F::one())
-        })
+        self.arithmetic_gate(|gate| gate.witness(bit, value, None).mul(F::one()))
     }
 
     /// Adds the polynomial f(x) = 1 - x + xa to the circuit description where
@@ -477,11 +455,7 @@ where
     /// The `bit` used as input which is a [`Variable`] should had previously
     /// been constrained to be either 1 or 0 using a bool constrain. See:
     /// [`StandardComposer::boolean_gate`].
-    pub fn conditional_select_one(
-        &mut self,
-        bit: Variable,
-        value: Variable,
-    ) -> Variable {
+    pub fn conditional_select_one(&mut self, bit: Variable, value: Variable) -> Variable {
         let value_scalar = self.variables.get(&value).unwrap();
         let bit_scalar = self.variables.get(&bit).unwrap();
 
@@ -532,13 +506,8 @@ where
         self.w_r.push(var_seven);
         self.w_o.push(var_min_twenty);
         self.w_4.push(var_one);
-        self.perm.add_variables_to_map(
-            var_six,
-            var_seven,
-            var_min_twenty,
-            var_one,
-            self.n,
-        );
+        self.perm
+            .add_variables_to_map(var_six, var_seven, var_min_twenty, var_one, self.n);
         self.n += 1;
 
         self.q_m.push(F::one());
@@ -561,13 +530,8 @@ where
         self.w_r.push(var_six);
         self.w_o.push(var_seven);
         self.w_4.push(self.zero_var);
-        self.perm.add_variables_to_map(
-            var_min_twenty,
-            var_six,
-            var_seven,
-            self.zero_var,
-            self.n,
-        );
+        self.perm
+            .add_variables_to_map(var_min_twenty, var_six, var_seven, self.zero_var, self.n);
         self.n += 1;
     }
 
@@ -575,26 +539,14 @@ where
     /// The first rows match the witness values used for `add_dummy_constraint`
     /// This function is only used for benchmarking
     pub fn add_dummy_lookup_table(&mut self) {
-        self.lookup_table.insert_row(
-            F::from(6u64),
-            F::from(7u64),
-            -F::from(20u64),
-            F::one(),
-        );
+        self.lookup_table
+            .insert_row(F::from(6u64), F::from(7u64), -F::from(20u64), F::one());
 
-        self.lookup_table.insert_row(
-            -F::from(20u64),
-            F::from(6u64),
-            F::from(7u64),
-            F::zero(),
-        );
+        self.lookup_table
+            .insert_row(-F::from(20u64), F::from(6u64), F::from(7u64), F::zero());
 
-        self.lookup_table.insert_row(
-            F::from(3u64),
-            F::one(),
-            F::from(4u64),
-            F::from(9u64),
-        );
+        self.lookup_table
+            .insert_row(F::from(3u64), F::one(), F::from(4u64), F::from(9u64));
     }
 
     /// This function is used to add a blinding factors to the witness
@@ -637,9 +589,8 @@ where
             self.q_hr.push(F::zero());
             self.q_h4.push(F::zero());
 
-            self.perm.add_variables_to_map(
-                rand_var_1, rand_var_2, rand_var_3, rand_var_4, self.n,
-            );
+            self.perm
+                .add_variables_to_map(rand_var_1, rand_var_2, rand_var_3, rand_var_4, self.n);
             self.n += 1;
         }
 
@@ -806,9 +757,7 @@ where
                     + q_h4 * d.pow([SBOX_ALPHA])
                     + qc)
                 + qlogic
-                    * (((delta(*a_next - four * a)
-                        - delta(*b_next - four * b))
-                        * c)
+                    * (((delta(*a_next - four * a) - delta(*b_next - four * b)) * c)
                         + delta(*a_next - four * a)
                         + delta(*b_next - four * b)
                         + delta(*d_next - four * d)
@@ -822,12 +771,8 @@ where
                                     .map(|(a_bit, b_bit)| a_bit & b_bit)
                                     .collect::<Vec<bool>>();
 
-                                F::from_repr(
-                                    <F as PrimeField>::BigInt::from_bits_le(
-                                        &a_and_b,
-                                    ),
-                                )
-                                .unwrap()
+                                F::from_repr(<F as PrimeField>::BigInt::from_bits_le(&a_and_b))
+                                    .unwrap()
                                     - *d
                             }
                             (false, true) => {
@@ -839,12 +784,8 @@ where
                                     .map(|(a_bit, b_bit)| a_bit ^ b_bit)
                                     .collect::<Vec<bool>>();
 
-                                F::from_repr(
-                                    <F as PrimeField>::BigInt::from_bits_le(
-                                        &a_xor_b,
-                                    ),
-                                )
-                                .unwrap()
+                                F::from_repr(<F as PrimeField>::BigInt::from_bits_le(&a_xor_b))
+                                    .unwrap()
                                     - *d
                             }
                             (false, false) => F::zero(),
@@ -910,8 +851,7 @@ mod test {
         PC: HomomorphicCommitment<F>,
     {
         // NOTE: Does nothing except add the dummy constraints.
-        let res =
-            gadget_tester::<F, P, PC>(|_: &mut StandardComposer<F, P>| {}, 200);
+        let res = gadget_tester::<F, P, PC>(|_: &mut StandardComposer<F, P>| {}, 200);
         assert!(res.is_ok());
     }
 
@@ -993,12 +933,10 @@ mod test {
                 let choice_a = composer.add_input(F::from(10u64));
                 let choice_b = composer.add_input(F::from(20u64));
 
-                let choice =
-                    composer.conditional_select(bit_1, choice_a, choice_b);
+                let choice = composer.conditional_select(bit_1, choice_a, choice_b);
                 composer.assert_equal(choice, choice_a);
 
-                let choice =
-                    composer.conditional_select(bit_0, choice_a, choice_b);
+                let choice = composer.conditional_select(bit_0, choice_a, choice_b);
                 composer.assert_equal(choice, choice_b);
             },
             32,
@@ -1061,8 +999,7 @@ mod test {
         ],
         [] => (
             Bls12_381,
-            ark_ed_on_bls12_381::EdwardsParameters
-
+            ark_ed_on_bls12_381::EdwardsConfig
         )
     );
 
@@ -1073,7 +1010,7 @@ mod test {
         ],
         [] => (
             Bls12_377,
-            ark_ed_on_bls12_377::EdwardsParameters
+            ark_ed_on_bls12_377::EdwardsConfig
         )
     );
 
@@ -1088,7 +1025,7 @@ mod test {
         ],
         [] => (
             Bls12_381,
-            ark_ed_on_bls12_381::EdwardsParameters
+            ark_ed_on_bls12_381::EdwardsConfig
         )
     );
 
@@ -1103,7 +1040,7 @@ mod test {
         ],
         [] => (
             Bls12_377,
-            ark_ed_on_bls12_377::EdwardsParameters
+            ark_ed_on_bls12_377::EdwardsConfig
         )
     );
 }

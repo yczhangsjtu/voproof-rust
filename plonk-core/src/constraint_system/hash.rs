@@ -1,4 +1,4 @@
-use ark_ec::TEModelParameters;
+use ark_ec::twisted_edwards::TECurveConfig as TEModelParameters;
 use ark_ff::PrimeField;
 
 use super::{StandardComposer, Variable};
@@ -22,8 +22,7 @@ where
         vars: &[Variable; 3],
         selectors: &[F; 5],
     ) -> Variable {
-        let w4_val = (selectors[0]
-            * self.value_of_var(vars[0]).pow([SBOX_ALPHA])
+        let w4_val = (selectors[0] * self.value_of_var(vars[0]).pow([SBOX_ALPHA])
             + selectors[1] * self.value_of_var(vars[1]).pow([SBOX_ALPHA])
             + selectors[2] * self.value_of_var(vars[2]).pow([SBOX_ALPHA])
             + selectors[3])
@@ -75,8 +74,7 @@ where
         vars: &[Variable; 3],
         selectors: &[F; 5],
     ) -> Variable {
-        let w4_val = (selectors[0]
-            * self.value_of_var(vars[0]).pow([SBOX_ALPHA])
+        let w4_val = (selectors[0] * self.value_of_var(vars[0]).pow([SBOX_ALPHA])
             + selectors[1] * self.value_of_var(vars[1])
             + selectors[2] * self.value_of_var(vars[2])
             + selectors[3])
@@ -121,8 +119,7 @@ where
 mod test {
     use super::*;
     use crate::{
-        batch_test, commitment::HomomorphicCommitment,
-        constraint_system::helper::gadget_tester,
+        batch_test, commitment::HomomorphicCommitment, constraint_system::helper::gadget_tester,
     };
     use ark_bls12_377::Bls12_377;
     use ark_bls12_381::Bls12_381;
@@ -150,16 +147,11 @@ mod test {
                 // 7*2^5+ 11*3 + 13*5 + 17
                 let e = composer.add_input(F::from(339u64));
 
-                let d_rec = composer.full_affine_transform_gate(
-                    &[a, b, c],
-                    &[q1, q2, q3, q4, q5],
-                );
+                let d_rec = composer.full_affine_transform_gate(&[a, b, c], &[q1, q2, q3, q4, q5]);
                 composer.assert_equal(d, d_rec);
 
-                let e_rec = composer.partial_affine_transform_gate(
-                    &[a, b, c],
-                    &[q1, q2, q3, q4, q5],
-                );
+                let e_rec =
+                    composer.partial_affine_transform_gate(&[a, b, c], &[q1, q2, q3, q4, q5]);
                 composer.assert_equal(e, e_rec);
 
                 composer.check_circuit_satisfied();
@@ -176,7 +168,7 @@ mod test {
         ],
         [] => (
             Bls12_381,
-            ark_ed_on_bls12_381::EdwardsParameters
+            ark_ed_on_bls12_381::EdwardsConfig
         )
     );
 
@@ -187,7 +179,7 @@ mod test {
         ],
         [] => (
             Bls12_377,
-            ark_ed_on_bls12_377::EdwardsParameters
+            ark_ed_on_bls12_377::EdwardsConfig
         )
     );
 }

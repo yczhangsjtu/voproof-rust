@@ -7,7 +7,7 @@ use ark_ec::TEModelParameters;
 use ark_ff::PrimeField;
 use core::{fmt::Debug, marker::PhantomData};
 use derivative::Derivative;
-use plonk_core::{constraint_system::StandardComposer, prelude as plonk};
+use plonk_core_voproof::{constraint_system::StandardComposer, prelude as plonk};
 
 pub trait PoseidonRefSpec<COM, const WIDTH: usize> {
     /// Field used as state
@@ -120,17 +120,9 @@ pub trait PoseidonRefSpec<COM, const WIDTH: usize> {
         Self::zeros::<1>(c)[0].clone()
     }
     fn add(c: &mut COM, x: &Self::Field, y: &Self::Field) -> Self::Field;
-    fn addi(
-        c: &mut COM,
-        a: &Self::Field,
-        b: &Self::ParameterField,
-    ) -> Self::Field;
+    fn addi(c: &mut COM, a: &Self::Field, b: &Self::ParameterField) -> Self::Field;
     fn mul(c: &mut COM, x: &Self::Field, y: &Self::Field) -> Self::Field;
-    fn muli(
-        c: &mut COM,
-        x: &Self::Field,
-        y: &Self::ParameterField,
-    ) -> Self::Field;
+    fn muli(c: &mut COM, x: &Self::Field, y: &Self::ParameterField) -> Self::Field;
 }
 
 #[derive(Derivative)]
@@ -146,13 +138,8 @@ where
     pub(crate) constants: PoseidonConstants<S::ParameterField>,
 }
 
-impl<COM, S: PoseidonRefSpec<COM, WIDTH>, const WIDTH: usize>
-    PoseidonRef<COM, S, WIDTH>
-{
-    pub fn new(
-        c: &mut COM,
-        constants: PoseidonConstants<S::ParameterField>,
-    ) -> Self {
+impl<COM, S: PoseidonRefSpec<COM, WIDTH>, const WIDTH: usize> PoseidonRef<COM, S, WIDTH> {
+    pub fn new(c: &mut COM, constants: PoseidonConstants<S::ParameterField>) -> Self {
         let mut elements = S::zeros(c);
         elements[0] = S::alloc(c, constants.domain_tag);
         PoseidonRef {
@@ -242,9 +229,7 @@ pub struct NativeSpecRef<F: PrimeField> {
     _field: PhantomData<F>,
 }
 
-impl<F: PrimeField, const WIDTH: usize> PoseidonRefSpec<(), WIDTH>
-    for NativeSpecRef<F>
-{
+impl<F: PrimeField, const WIDTH: usize> PoseidonRefSpec<(), WIDTH> for NativeSpecRef<F> {
     type Field = F;
     type ParameterField = F;
 
@@ -260,11 +245,7 @@ impl<F: PrimeField, const WIDTH: usize> PoseidonRefSpec<(), WIDTH>
         *x + *y
     }
 
-    fn addi(
-        _c: &mut (),
-        a: &Self::Field,
-        b: &Self::ParameterField,
-    ) -> Self::Field {
+    fn addi(_c: &mut (), a: &Self::Field, b: &Self::ParameterField) -> Self::Field {
         *a + *b
     }
 
@@ -272,19 +253,15 @@ impl<F: PrimeField, const WIDTH: usize> PoseidonRefSpec<(), WIDTH>
         *x * *y
     }
 
-    fn muli(
-        _c: &mut (),
-        x: &Self::Field,
-        y: &Self::ParameterField,
-    ) -> Self::Field {
+    fn muli(_c: &mut (), x: &Self::Field, y: &Self::ParameterField) -> Self::Field {
         *x * *y
     }
 }
 
 pub struct PlonkSpecRef;
 
-impl<F, P, const WIDTH: usize>
-    PoseidonRefSpec<plonk::StandardComposer<F, P>, WIDTH> for PlonkSpecRef
+impl<F, P, const WIDTH: usize> PoseidonRefSpec<plonk::StandardComposer<F, P>, WIDTH>
+    for PlonkSpecRef
 where
     F: PrimeField,
     P: TEModelParameters<BaseField = F>,
@@ -292,24 +269,15 @@ where
     type Field = plonk::Variable;
     type ParameterField = F;
 
-    fn alloc(
-        c: &mut StandardComposer<F, P>,
-        v: Self::ParameterField,
-    ) -> Self::Field {
+    fn alloc(c: &mut StandardComposer<F, P>, v: Self::ParameterField) -> Self::Field {
         c.add_input(v)
     }
 
-    fn zeros<const W: usize>(
-        c: &mut StandardComposer<F, P>,
-    ) -> [Self::Field; W] {
+    fn zeros<const W: usize>(c: &mut StandardComposer<F, P>) -> [Self::Field; W] {
         [c.zero_var(); W]
     }
 
-    fn add(
-        c: &mut StandardComposer<F, P>,
-        x: &Self::Field,
-        y: &Self::Field,
-    ) -> Self::Field {
+    fn add(c: &mut StandardComposer<F, P>, x: &Self::Field, y: &Self::Field) -> Self::Field {
         c.arithmetic_gate(|g| g.witness(*x, *y, None).add(F::one(), F::one()))
     }
 
@@ -326,11 +294,7 @@ where
         })
     }
 
-    fn mul(
-        c: &mut StandardComposer<F, P>,
-        x: &Self::Field,
-        y: &Self::Field,
-    ) -> Self::Field {
+    fn mul(c: &mut StandardComposer<F, P>, x: &Self::Field, y: &Self::Field) -> Self::Field {
         c.arithmetic_gate(|q| q.witness(*x, *y, None).mul(F::one()))
     }
 
@@ -347,11 +311,11 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use ark_ec::PairingEngine;
+    use ark_ec::pairing::Pairing;
 
     type E = ark_bls12_381::Bls12_381;
     type P = ark_ed_on_bls12_381::EdwardsParameters;
-    type Fr = <E as PairingEngine>::Fr;
+    type Fr = <E as Pairing>::ScalarField;
     use ark_std::{test_rng, UniformRand};
 
     #[test]
@@ -362,10 +326,7 @@ mod tests {
         let mut rng = test_rng();
 
         let param = PoseidonConstants::generate::<WIDTH>();
-        let mut poseidon = PoseidonRef::<(), NativeSpecRef<Fr>, WIDTH>::new(
-            &mut (),
-            param.clone(),
-        );
+        let mut poseidon = PoseidonRef::<(), NativeSpecRef<Fr>, WIDTH>::new(&mut (), param.clone());
         let inputs = (0..ARITY).map(|_| Fr::rand(&mut rng)).collect::<Vec<_>>();
 
         inputs.iter().for_each(|x| {
@@ -374,10 +335,8 @@ mod tests {
         let native_hash: Fr = poseidon.output_hash(&mut ());
 
         let mut c = StandardComposer::<Fr, P>::new();
-        let inputs_var =
-            inputs.iter().map(|x| c.add_input(*x)).collect::<Vec<_>>();
-        let mut poseidon_circuit =
-            PoseidonRef::<_, PlonkSpecRef, WIDTH>::new(&mut c, param);
+        let inputs_var = inputs.iter().map(|x| c.add_input(*x)).collect::<Vec<_>>();
+        let mut poseidon_circuit = PoseidonRef::<_, PlonkSpecRef, WIDTH>::new(&mut c, param);
         inputs_var.iter().for_each(|x| {
             let _ = poseidon_circuit.input(*x).unwrap();
         });
@@ -405,8 +364,7 @@ mod tests {
         let mut rng = test_rng();
 
         let param = PoseidonConstants::generate::<WIDTH>();
-        let mut poseidon =
-            PoseidonRef::<(), NativeSpecRef<Fr>, WIDTH>::new(&mut (), param);
+        let mut poseidon = PoseidonRef::<(), NativeSpecRef<Fr>, WIDTH>::new(&mut (), param);
         (0..(ARITY + 1)).for_each(|_| {
             let _ = poseidon.input(Fr::rand(&mut rng)).unwrap();
         });

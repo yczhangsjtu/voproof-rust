@@ -14,6 +14,8 @@ use ark_poly::polynomial::univariate::DensePolynomial;
 use ark_poly::{EvaluationDomain, Evaluations, GeneralEvaluationDomain};
 use ark_poly_commit::PolynomialCommitment;
 use ark_serialize::*;
+use crypto_primitives_voproof::sponge::CryptographicSponge;
+
 
 /// Lookup Gates Prover Key
 #[derive(CanonicalDeserialize, CanonicalSerialize, derivative::Derivative)]
@@ -212,10 +214,11 @@ where
     Eq(bound = "PC::Commitment: Eq"),
     PartialEq(bound = "PC::Commitment: PartialEq")
 )]
-pub struct VerifierKey<F, PC>
+pub struct VerifierKey<F, PC, S>
 where
     F: PrimeField,
-    PC: PolynomialCommitment<F, DensePolynomial<F>>,
+    PC: PolynomialCommitment<F, DensePolynomial<F>, S>,
+    S: CryptographicSponge,
 {
     /// Lookup Selector Commitment
     pub q_lookup: PC::Commitment,

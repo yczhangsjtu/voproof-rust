@@ -7,27 +7,17 @@
 use crate::{error::Error, util::lc};
 use ark_ff::{Field, PrimeField};
 use ark_poly::{
-    univariate::DensePolynomial, EvaluationDomain, GeneralEvaluationDomain,
-    UVPolynomial,
+    univariate::DensePolynomial, DenseUVPolynomial as UVPolynomial, EvaluationDomain,
+    GeneralEvaluationDomain,
 };
-use ark_serialize::{
-    CanonicalDeserialize, CanonicalSerialize, Read, SerializationError, Write,
-};
+use ark_serialize::{CanonicalDeserialize, CanonicalSerialize, Read, SerializationError, Write};
 use core::ops::{Add, Mul};
 use indexmap::IndexMap;
 
 /// MultiSet is struct containing vectors of scalars, which
 /// individually represents either a wire value or an index
 /// of a PlookUp table
-#[derive(
-    CanonicalDeserialize,
-    CanonicalSerialize,
-    Clone,
-    Debug,
-    Default,
-    Eq,
-    PartialEq,
-)]
+#[derive(CanonicalDeserialize, CanonicalSerialize, Clone, Debug, Default, Eq, PartialEq)]
 pub struct MultiSet<F>(pub Vec<F>)
 where
     F: Field;
@@ -191,10 +181,7 @@ where
     /// Treats each element in the multiset as evaluation points
     /// Computes IFFT of the set of evaluation points
     /// and returns the coefficients as a Polynomial data structure
-    pub(crate) fn to_polynomial(
-        &self,
-        domain: &GeneralEvaluationDomain<F>,
-    ) -> DensePolynomial<F>
+    pub(crate) fn to_polynomial(&self, domain: &GeneralEvaluationDomain<F>) -> DensePolynomial<F>
     where
         F: PrimeField,
     {
@@ -415,9 +402,8 @@ mod test {
         // Computed expected result
         let compressed_element = MultiSet::compress(&table.f, alpha);
 
-        let actual_element = F::from(1u32)
-            + (F::from(2u32) * alpha)
-            + (F::from(3u32) * alpha_squared);
+        let actual_element =
+            F::from(1u32) + (F::from(2u32) * alpha) + (F::from(3u32) * alpha_squared);
 
         let mut actual_set = MultiSet::new();
 

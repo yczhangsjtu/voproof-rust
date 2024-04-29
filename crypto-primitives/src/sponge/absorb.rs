@@ -10,7 +10,7 @@ use ark_serialize::CanonicalSerialize;
 #[cfg(not(feature = "std"))]
 use ark_std::{string::String, vec::Vec};
 
-pub use ark_crypto_primitives_macros::*;
+pub use crypto_primitives_macros_voproof::*;
 
 /// An interface for objects that can be absorbed by a `CryptographicSponge`.
 pub trait Absorb {

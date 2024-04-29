@@ -25,12 +25,11 @@ use crate::{
     util::EvaluationDomainExt,
 };
 use ark_ec::TEModelParameters;
+use crypto_primitives_voproof::sponge::CryptographicSponge;
 
 use ark_ff::{fields::batch_inversion, FftField, PrimeField};
 use ark_poly::{EvaluationDomain, GeneralEvaluationDomain};
-use ark_serialize::{
-    CanonicalDeserialize, CanonicalSerialize, Read, SerializationError, Write,
-};
+use ark_serialize::{CanonicalDeserialize, CanonicalSerialize, Read, SerializationError, Write};
 use merlin::Transcript;
 
 use super::pi::PublicInputs;
@@ -41,17 +40,15 @@ use super::pi::PublicInputs;
 #[derive(CanonicalDeserialize, CanonicalSerialize, derivative::Derivative)]
 #[derivative(
     Clone(bound = "PC::Commitment: Clone, PC::Proof: Clone"),
-    Debug(
-        bound = "PC::Commitment: core::fmt::Debug, PC::Proof: core::fmt::Debug"
-    ),
+    Debug(bound = "PC::Commitment: core::fmt::Debug, PC::Proof: core::fmt::Debug"),
     Default(bound = "PC::Commitment: Default, PC::Proof: Default"),
     Eq(bound = "PC::Commitment: Eq, PC::Proof: Eq"),
     PartialEq(bound = "PC::Commitment: PartialEq, PC::Proof: PartialEq")
 )]
-pub struct Proof<F, PC>
+pub struct Proof<F, PC, S: CryptographicSponge>
 where
     F: PrimeField,
-    PC: HomomorphicCommitment<F>,
+    PC: HomomorphicCommitment<F, S>,
 {
     /// Commitment to the witness polynomial for the left wires.
     pub(crate) a_comm: PC::Commitment,
@@ -130,11 +127,12 @@ where
     where
         P: TEModelParameters<BaseField = F>,
     {
-        let domain =
-            GeneralEvaluationDomain::<F>::new(plonk_verifier_key.n).ok_or(Error::InvalidEvalDomainSize {
+        let domain = GeneralEvaluationDomain::<F>::new(plonk_verifier_key.n).ok_or(
+            Error::InvalidEvalDomainSize {
                 log_size_of_group: plonk_verifier_key.n.trailing_zeros(),
                 adicity: <<F as FftField>::FftParams as ark_ff::FftParameters>::TWO_ADICITY,
-            })?;
+            },
+        )?;
 
         // Append Public Inputs to the transcript
         transcript.append(b"pi", pub_inputs);
@@ -197,12 +195,10 @@ where
         // Compute quotient challenge
         let alpha = transcript.challenge_scalar(b"alpha");
         transcript.append(b"alpha", &alpha);
-        let range_sep_challenge =
-            transcript.challenge_scalar(b"range separation challenge");
+        let range_sep_challenge = transcript.challenge_scalar(b"range separation challenge");
         transcript.append(b"range seperation challenge", &range_sep_challenge);
 
-        let logic_sep_challenge =
-            transcript.challenge_scalar(b"logic separation challenge");
+        let logic_sep_challenge = transcript.challenge_scalar(b"logic separation challenge");
         transcript.append(b"logic seperation challenge", &logic_sep_challenge);
 
         let fixed_base_sep_challenge =
@@ -219,10 +215,8 @@ where
             &var_base_sep_challenge,
         );
 
-        let lookup_sep_challenge =
-            transcript.challenge_scalar(b"lookup separation challenge");
-        transcript
-            .append(b"lookup separation challenge", &lookup_sep_challenge);
+        let lookup_sep_challenge = transcript.challenge_scalar(b"lookup separation challenge");
+        transcript.append(b"lookup separation challenge", &lookup_sep_challenge);
 
         // Add commitment to quotient polynomial to transcript
         transcript.append(b"t_1", &self.t_1_comm);
@@ -242,8 +236,7 @@ where
         let z_h_eval = domain.evaluate_vanishing_polynomial(z_challenge);
 
         // Compute first lagrange polynomial evaluated at `z_challenge`
-        let l1_eval =
-            compute_first_lagrange_evaluation(&domain, &z_h_eval, &z_challenge);
+        let l1_eval = compute_first_lagrange_evaluation(&domain, &z_h_eval, &z_challenge);
 
         let r0 = self.compute_r0(
             &domain,
@@ -276,14 +269,8 @@ where
             b"right_sig_eval",
             &self.evaluations.perm_evals.right_sigma_eval,
         );
-        transcript.append(
-            b"out_sig_eval",
-            &self.evaluations.perm_evals.out_sigma_eval,
-        );
-        transcript.append(
-            b"perm_eval",
-            &self.evaluations.perm_evals.permutation_eval,
-        );
+        transcript.append(b"out_sig_eval", &self.evaluations.perm_evals.out_sigma_eval);
+        transcript.append(b"perm_eval", &self.evaluations.perm_evals.permutation_eval);
 
         transcript.append(b"f_eval", &self.evaluations.lookup_evals.f_eval);
         transcript.append(
@@ -388,8 +375,7 @@ where
             self.evaluations.wire_evals.d_eval,
         ];
 
-        let saw_challenge: F =
-            transcript.challenge_scalar(b"aggregate_witness");
+        let saw_challenge: F = transcript.challenge_scalar(b"aggregate_witness");
 
         let saw_commits = [
             label_commitment!(self.z_comm),
@@ -464,8 +450,7 @@ where
         let alpha_sq = alpha.square();
 
         let lookup_sep_challenge_sq = lookup_sep_challenge.square();
-        let lookup_sep_challenge_cu =
-            lookup_sep_challenge_sq * lookup_sep_challenge;
+        let lookup_sep_challenge_cu = lookup_sep_challenge_sq * lookup_sep_challenge;
 
         // a + beta * sigma_1 + gamma
         let beta_sig1 = beta * self.evaluations.perm_evals.left_sigma_eval;
@@ -480,8 +465,7 @@ where
         let b_2 = self.evaluations.wire_evals.c_eval + beta_sig3 + gamma;
 
         // ((d + gamma) * z_hat) * alpha
-        let b_3 =
-            (self.evaluations.wire_evals.d_eval + gamma) * z_hat_eval * alpha;
+        let b_3 = (self.evaluations.wire_evals.d_eval + gamma) * z_hat_eval * alpha;
 
         let b = b_0 * b_1 * b_2 * b_3;
 
@@ -538,11 +522,7 @@ where
 
         plonk_verifier_key
             .arithmetic
-            .compute_linearisation_commitment(
-                &mut scalars,
-                &mut points,
-                &self.evaluations,
-            );
+            .compute_linearisation_commitment(&mut scalars, &mut points, &self.evaluations);
         Range::extend_linearisation_commitment::<PC>(
             &plonk_verifier_key.range_selector_commitment,
             range_sep_challenge,
@@ -596,8 +576,7 @@ where
             );
 
         // Second part
-        let vanishing_poly_eval =
-            domain.evaluate_vanishing_polynomial(z_challenge);
+        let vanishing_poly_eval = domain.evaluate_vanishing_polynomial(z_challenge);
         // z_challenge ^ n
         let z_challenge_to_n = vanishing_poly_eval + F::one();
 
@@ -610,8 +589,8 @@ where
         let t_7_scalar = t_6_scalar * z_challenge_to_n;
         let t_8_scalar = t_7_scalar * z_challenge_to_n;
         scalars.extend_from_slice(&[
-            t_1_scalar, t_2_scalar, t_3_scalar, t_4_scalar, t_5_scalar,
-            t_6_scalar, t_7_scalar, t_8_scalar,
+            t_1_scalar, t_2_scalar, t_3_scalar, t_4_scalar, t_5_scalar, t_6_scalar, t_7_scalar,
+            t_8_scalar,
         ]);
         points.extend_from_slice(&[
             self.t_1_comm.clone(),
@@ -665,8 +644,7 @@ fn compute_barycentric_eval<F>(
 where
     F: PrimeField,
 {
-    let numerator =
-        domain.evaluate_vanishing_polynomial(point) * domain.size_inv();
+    let numerator = domain.evaluate_vanishing_polynomial(point) * domain.size_inv();
     let range = 0..evaluations.len();
 
     let non_zero_evaluations = range
@@ -715,18 +693,16 @@ mod test {
         PC: HomomorphicCommitment<F>,
         Proof<F, PC>: std::fmt::Debug + PartialEq,
     {
-        let proof =
-            crate::constraint_system::helper::gadget_tester::<F, P, PC>(
-                |_: &mut crate::constraint_system::StandardComposer<F, P>| {},
-                200,
-            )
-            .expect("Empty circuit failed");
+        let proof = crate::constraint_system::helper::gadget_tester::<F, P, PC>(
+            |_: &mut crate::constraint_system::StandardComposer<F, P>| {},
+            200,
+        )
+        .expect("Empty circuit failed");
 
         let mut proof_bytes = vec![];
         proof.serialize(&mut proof_bytes).unwrap();
 
-        let obtained_proof =
-            Proof::<F, PC>::deserialize(proof_bytes.as_slice()).unwrap();
+        let obtained_proof = Proof::<F, PC>::deserialize(proof_bytes.as_slice()).unwrap();
 
         assert_eq!(proof, obtained_proof);
     }

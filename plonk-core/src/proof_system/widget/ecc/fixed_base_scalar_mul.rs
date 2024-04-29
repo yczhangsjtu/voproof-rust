@@ -23,7 +23,7 @@ use crate::proof_system::{
     widget::{GateConstraint, WitnessValues},
     CustomValues,
 };
-use ark_ec::{ModelParameters, TEModelParameters};
+use ark_ec::{twisted_edwards::TECurveConfig as TEModelParameters, CurveConfig as ModelParameters};
 use ark_ff::PrimeField;
 use core::marker::PhantomData;
 
@@ -129,10 +129,7 @@ where
         let rhs = y_alpha * acc_y - P::COEFF_A * x_alpha * acc_x;
         let y_acc_consistency = (lhs - rhs) * kappa_cu;
 
-        let checks = bit_consistency
-            + x_acc_consistency
-            + y_acc_consistency
-            + xy_consistency;
+        let checks = bit_consistency + x_acc_consistency + y_acc_consistency + xy_consistency;
 
         checks * separation_challenge
     }

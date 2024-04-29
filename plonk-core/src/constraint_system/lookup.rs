@@ -5,7 +5,7 @@
 // Copyright (c) ZK-Garage. All rights reserved.
 
 use crate::constraint_system::{StandardComposer, Variable};
-use ark_ec::TEModelParameters;
+use ark_ec::twisted_edwards::TECurveConfig as TEModelParameters;
 use ark_ff::PrimeField;
 
 impl<F, P> StandardComposer<F, P>
@@ -57,9 +57,8 @@ where
         self.q_lookup.push(F::one());
 
         if let Some(pi) = pi {
-            self.add_pi(self.n, &pi).unwrap_or_else(|_| {
-                panic!("Could not insert PI {:?} at {}", pi, self.n)
-            });
+            self.add_pi(self.n, &pi)
+                .unwrap_or_else(|_| panic!("Could not insert PI {:?} at {}", pi, self.n));
         };
 
         self.perm.add_variables_to_map(a, b, c, d, self.n);
@@ -74,8 +73,8 @@ where
 mod test {
     use super::*;
     use crate::{
-        batch_test, commitment::HomomorphicCommitment,
-        constraint_system::helper::*, lookup::LookupTable,
+        batch_test, commitment::HomomorphicCommitment, constraint_system::helper::*,
+        lookup::LookupTable,
     };
     use ark_bls12_377::Bls12_377;
     use ark_bls12_381::Bls12_381;
@@ -111,37 +110,18 @@ mod test {
                 let xor13_var = composer.add_input(F::from(xor13));
                 let xor23_var = composer.add_input(F::from(xor23));
 
-                composer.lookup_gate(
-                    rand1_var,
-                    rand2_var,
-                    xor12_var,
-                    Some(negative_one),
-                    None,
-                );
+                composer.lookup_gate(rand1_var, rand2_var, xor12_var, Some(negative_one), None);
 
-                composer.lookup_gate(
-                    rand1_var,
-                    rand3_var,
-                    xor13_var,
-                    Some(negative_one),
-                    None,
-                );
+                composer.lookup_gate(rand1_var, rand3_var, xor13_var, Some(negative_one), None);
 
-                composer.lookup_gate(
-                    rand2_var,
-                    rand3_var,
-                    xor23_var,
-                    Some(negative_one),
-                    None,
-                );
+                composer.lookup_gate(rand2_var, rand3_var, xor23_var, Some(negative_one), None);
 
                 composer.arithmetic_gate(|gate| {
                     gate.add(F::one(), F::one())
                         .witness(rand1_var, rand2_var, None)
                 });
-                composer.arithmetic_gate(|gate| {
-                    gate.mul(F::one()).witness(rand2_var, rand3_var, None)
-                });
+                composer
+                    .arithmetic_gate(|gate| gate.mul(F::one()).witness(rand2_var, rand3_var, None));
             },
             256,
         );
@@ -154,7 +134,7 @@ mod test {
             test_plookup_xor
         ],
         [] => (
-            Bls12_381, ark_ed_on_bls12_381::EdwardsParameters
+            Bls12_381, ark_ed_on_bls12_381::EdwardsConfig
         )
     );
 
@@ -164,7 +144,7 @@ mod test {
             test_plookup_xor
         ],
         [] => (
-            Bls12_377, ark_ed_on_bls12_377::EdwardsParameters
+            Bls12_377, ark_ed_on_bls12_377::EdwardsConfig
         )
     );
 }

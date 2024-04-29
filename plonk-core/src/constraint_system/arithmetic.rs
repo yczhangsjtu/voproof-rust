@@ -7,7 +7,7 @@
 //! Simple Arithmetic Gates
 
 use crate::constraint_system::{StandardComposer, Variable};
-use ark_ec::TEModelParameters;
+use ark_ec::twisted_edwards::TECurveConfig as TEModelParameters;
 use ark_ff::PrimeField;
 
 #[derive(Debug, Clone, Copy)]
@@ -49,12 +49,7 @@ where
         Self::default()
     }
 
-    pub fn witness(
-        &mut self,
-        w_l: Variable,
-        w_r: Variable,
-        w_o: Option<Variable>,
-    ) -> &mut Self {
+    pub fn witness(&mut self, w_l: Variable, w_r: Variable, w_o: Option<Variable>) -> &mut Self {
         self.witness = Some((w_l, w_r, w_o));
         self
     }
@@ -141,16 +136,14 @@ where
         self.q_lookup.push(F::zero());
 
         if let Some(pi) = gate.pi {
-            self.add_pi(self.n, &pi).unwrap_or_else(|_| {
-                panic!("Could not insert PI {:?} at {}", pi, self.n)
-            });
+            self.add_pi(self.n, &pi)
+                .unwrap_or_else(|_| panic!("Could not insert PI {:?} at {}", pi, self.n));
         };
 
         let c = gate_witness.2.unwrap_or_else(|| {
             self.add_input(
                 ((gate.mul_selector
-                    * (self.variables[&gate_witness.0]
-                        * self.variables[&gate_witness.1]))
+                    * (self.variables[&gate_witness.0] * self.variables[&gate_witness.1]))
                     + gate.add_selectors.0 * self.variables[&gate_witness.0]
                     + gate.add_selectors.1 * self.variables[&gate_witness.1]
                     + gate.const_selector
@@ -160,13 +153,8 @@ where
             )
         });
         self.w_o.push(c);
-        self.perm.add_variables_to_map(
-            gate_witness.0,
-            gate_witness.1,
-            c,
-            w4,
-            self.n,
-        );
+        self.perm
+            .add_variables_to_map(gate_witness.0, gate_witness.1, c, w4, self.n);
         self.n += 1;
 
         c
@@ -176,10 +164,7 @@ where
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::{
-        batch_test, commitment::HomomorphicCommitment,
-        constraint_system::helper::*,
-    };
+    use crate::{batch_test, commitment::HomomorphicCommitment, constraint_system::helper::*};
     use ark_bls12_377::Bls12_377;
     use ark_bls12_381::Bls12_381;
 
@@ -199,11 +184,7 @@ mod test {
                         .pi(F::one())
                 });
 
-                composer.constrain_to_constant(
-                    should_be_three,
-                    F::from(3u64),
-                    None,
-                );
+                composer.constrain_to_constant(should_be_three, F::from(3u64), None);
 
                 let should_be_four = composer.arithmetic_gate(|gate| {
                     gate.witness(var_one, var_one, None)
@@ -211,11 +192,7 @@ mod test {
                         .pi(F::from(2u64))
                 });
 
-                composer.constrain_to_constant(
-                    should_be_four,
-                    F::from(4u64),
-                    None,
-                );
+                composer.constrain_to_constant(should_be_four, F::from(4u64), None);
             },
             200,
         );
@@ -255,9 +232,8 @@ mod test {
                 // can compute it using an `arithmetic_gate`. If the output
                 // is public, we can also constrain the output wire of the mul
                 // gate to it. This is what this test does
-                let output = composer.arithmetic_gate(|gate| {
-                    gate.witness(fourteen, twenty, None).mul(F::one())
-                });
+                let output = composer
+                    .arithmetic_gate(|gate| gate.witness(fourteen, twenty, None).mul(F::one()));
 
                 composer.constrain_to_constant(output, F::from(280u64), None);
             },
@@ -409,13 +385,11 @@ mod test {
                 let six = composer.add_input(F::from(6u64));
                 let seven = composer.add_input(F::from(7u64));
 
-                let five_plus_five = composer.arithmetic_gate(|gate| {
-                    gate.witness(five, five, None).add(F::one(), F::one())
-                });
+                let five_plus_five = composer
+                    .arithmetic_gate(|gate| gate.witness(five, five, None).add(F::one(), F::one()));
 
-                let six_plus_seven = composer.arithmetic_gate(|gate| {
-                    gate.witness(six, seven, None).add(F::one(), F::one())
-                });
+                let six_plus_seven = composer
+                    .arithmetic_gate(|gate| gate.witness(six, seven, None).add(F::one(), F::one()));
 
                 let output = composer.arithmetic_gate(|gate| {
                     gate.witness(five_plus_five, six_plus_seven, None)
@@ -441,7 +415,7 @@ mod test {
             test_incorrect_big_arith_gate
         ],
         [] => (
-            Bls12_381, ark_ed_on_bls12_381::EdwardsParameters
+            Bls12_381, ark_ed_on_bls12_381::EdwardsConfig
         )
     );
 
@@ -457,7 +431,7 @@ mod test {
             test_incorrect_big_arith_gate
         ],
         [] => (
-            Bls12_377, ark_ed_on_bls12_377::EdwardsParameters
+            Bls12_377, ark_ed_on_bls12_377::EdwardsConfig
         )
     );
 }

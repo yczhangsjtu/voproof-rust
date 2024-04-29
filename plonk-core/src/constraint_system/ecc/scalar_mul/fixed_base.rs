@@ -6,30 +6,25 @@
 
 //! Fixed-base Scalar Multiplication Gate
 
-use crate::constraint_system::{
-    ecc::Point, variable::Variable, StandardComposer,
+use crate::constraint_system::{ecc::Point, variable::Variable, StandardComposer};
+use ark_ec::models::twisted_edwards::{Affine as TEGroupAffine, Projective as TEGroupProjective};
+use ark_ec::{
+    models::twisted_edwards::TECurveConfig as TEModelParameters, CurveGroup as ProjectiveCurve,
 };
-use ark_ec::models::twisted_edwards_extended::{
-    GroupAffine as TEGroupAffine, GroupProjective as TEGroupProjective,
-};
-use ark_ec::{models::TEModelParameters, ProjectiveCurve};
-use ark_ff::{BigInteger, FpParameters, PrimeField};
+use ark_ff::{BigInteger, FpConfig as FpParameters, PrimeField};
 use num_traits::Zero;
 
-fn compute_wnaf_point_multiples<P>(
-    base_point: TEGroupProjective<P>,
-) -> Vec<TEGroupAffine<P>>
+fn compute_wnaf_point_multiples<P>(base_point: TEGroupProjective<P>) -> Vec<TEGroupAffine<P>>
 where
     P: TEModelParameters,
     P::BaseField: PrimeField,
 {
     let mut multiples = vec![
         TEGroupProjective::<P>::default();
-        <P::BaseField as PrimeField>::Params::MODULUS_BITS
-            as usize
+        <P::BaseField as PrimeField>::MODULUS_BIT_SIZE as usize
     ];
     multiples[0] = base_point;
-    for i in 1..<P::BaseField as PrimeField>::Params::MODULUS_BITS as usize {
+    for i in 1..<P::BaseField as PrimeField>::MODULUS_BIT_SIZE as usize {
         multiples[i] = multiples[i - 1].double();
     }
     ProjectiveCurve::batch_normalization_into_affine(&multiples)
@@ -53,17 +48,15 @@ where
         scalar: Variable,
         base_point: TEGroupAffine<P>,
     ) -> Point<P> {
-        let num_bits = <F as PrimeField>::Params::MODULUS_BITS as usize;
+        let num_bits = <F as PrimeField>::MODULUS_BIT_SIZE as usize;
         // compute 2^iG
-        let mut point_multiples =
-            compute_wnaf_point_multiples(base_point.into());
+        let mut point_multiples = compute_wnaf_point_multiples(base_point.into());
         point_multiples.reverse();
 
         let scalar_value = self.variables.get(&scalar).unwrap();
 
         // Convert scalar to wnaf_2(k)
-        let wnaf_entries =
-            scalar_value.into_repr().find_wnaf(2).expect("Fix this!");
+        let wnaf_entries = scalar_value.into_repr().find_wnaf(2).expect("Fix this!");
         // wnaf_entries.extend(vec![0i64; num_bits - wnaf_entries.len()]);
         assert!(wnaf_entries.len() <= num_bits);
 
@@ -86,14 +79,16 @@ where
             // Offset the index by the number of trailing zeros
             let index = i + n_trailing_zeros;
             // Based on the WNAF, we decide what scalar and point to add
-            let (scalar_to_add, point_to_add) =
-                match entry {
-                    0 => { (F::zero(), TEGroupAffine::<P>::zero())},
-                    -1 => {(-F::one(), -point_multiples[index])},
-                    1 => {(F::one(), point_multiples[index])},
-                    _ => unreachable!("Currently WNAF_2(k) is supported.
-                        The possible values are 1, -1 and 0. Current entry is {}", entry),
-                };
+            let (scalar_to_add, point_to_add) = match entry {
+                0 => (F::zero(), TEGroupAffine::<P>::zero()),
+                -1 => (-F::one(), -point_multiples[index]),
+                1 => (F::one(), point_multiples[index]),
+                _ => unreachable!(
+                    "Currently WNAF_2(k) is supported.
+                        The possible values are 1, -1 and 0. Current entry is {}",
+                    entry
+                ),
+            };
 
             let prev_accumulator = F::from(2u64) * scalar_acc[index];
             scalar_acc.push(prev_accumulator + scalar_to_add);
@@ -164,12 +159,11 @@ where
 mod tests {
     use super::*;
     use crate::{
-        batch_test, commitment::HomomorphicCommitment,
-        constraint_system::helper::*, util,
+        batch_test, commitment::HomomorphicCommitment, constraint_system::helper::*, util,
     };
     use ark_bls12_377::Bls12_377;
     use ark_bls12_381::Bls12_381;
-    use ark_ec::{group::Group, AffineCurve};
+    use ark_ec::{AffineRepr as AffineCurve, Group};
 
     fn test_ecc_constraint<F, P, PC>()
     where
@@ -180,27 +174,22 @@ mod tests {
         let res = gadget_tester::<F, P, PC>(
             |composer: &mut StandardComposer<F, P>| {
                 let scalar = F::from_le_bytes_mod_order(&[
-                    182, 44, 247, 214, 94, 14, 151, 208, 130, 16, 200, 204,
-                    147, 32, 104, 166, 0, 59, 52, 1, 1, 59, 103, 6, 169, 175,
-                    51, 101, 234, 180, 125, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                    182, 44, 247, 214, 94, 14, 151, 208, 130, 16, 200, 204, 147, 32, 104, 166, 0,
+                    59, 52, 1, 1, 59, 103, 6, 169, 175, 51, 101, 234, 180, 125, 4, 0, 0, 0, 0, 0,
+                    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
                     0,
                 ]);
                 let secret_scalar = composer.add_input(scalar);
 
                 let (x, y) = P::AFFINE_GENERATOR_COEFFS;
                 let generator = TEGroupAffine::new(x, y);
-                let expected_point: TEGroupAffine<P> = AffineCurve::mul(
-                    &generator,
-                    util::to_embedded_curve_scalar::<F, P>(scalar),
-                )
-                .into();
+                let expected_point: TEGroupAffine<P> =
+                    AffineCurve::mul(&generator, util::to_embedded_curve_scalar::<F, P>(scalar))
+                        .into();
 
-                let point_scalar =
-                    composer.fixed_base_scalar_mul(secret_scalar, generator);
+                let point_scalar = composer.fixed_base_scalar_mul(secret_scalar, generator);
 
-                composer
-                    .assert_equal_public_point(point_scalar, expected_point);
+                composer.assert_equal_public_point(point_scalar, expected_point);
             },
             600,
         );
@@ -220,17 +209,13 @@ mod tests {
 
                 let (x, y) = P::AFFINE_GENERATOR_COEFFS;
                 let generator = TEGroupAffine::new(x, y);
-                let expected_point = AffineCurve::mul(
-                    &generator,
-                    util::to_embedded_curve_scalar::<F, P>(scalar),
-                )
-                .into();
+                let expected_point =
+                    AffineCurve::mul(&generator, util::to_embedded_curve_scalar::<F, P>(scalar))
+                        .into();
 
-                let point_scalar =
-                    composer.fixed_base_scalar_mul(secret_scalar, generator);
+                let point_scalar = composer.fixed_base_scalar_mul(secret_scalar, generator);
 
-                composer
-                    .assert_equal_public_point(point_scalar, expected_point);
+                composer.assert_equal_public_point(point_scalar, expected_point);
             },
             600,
         );
@@ -253,17 +238,13 @@ mod tests {
                 let generator = TEGroupAffine::new(x, y);
                 let double_gen = generator.double();
 
-                let expected_point: TEGroupAffine<P> = AffineCurve::mul(
-                    &double_gen,
-                    util::to_embedded_curve_scalar::<F, P>(scalar),
-                )
-                .into();
+                let expected_point: TEGroupAffine<P> =
+                    AffineCurve::mul(&double_gen, util::to_embedded_curve_scalar::<F, P>(scalar))
+                        .into();
 
-                let point_scalar =
-                    composer.fixed_base_scalar_mul(secret_scalar, generator);
+                let point_scalar = composer.fixed_base_scalar_mul(secret_scalar, generator);
 
-                composer
-                    .assert_equal_public_point(point_scalar, expected_point);
+                composer.assert_equal_public_point(point_scalar, expected_point);
             },
             600,
         );
@@ -298,10 +279,7 @@ mod tests {
                 let point_b = Point::<P>::new(var_point_b_x, var_point_b_y);
                 let new_point = composer.point_addition_gate(point_a, point_b);
 
-                composer.assert_equal_public_point(
-                    new_point,
-                    affine_expected_point,
-                );
+                composer.assert_equal_public_point(new_point, affine_expected_point);
             },
             600,
         );
@@ -323,57 +301,43 @@ mod tests {
                 let scalar_a = F::from(112233u64);
                 let secret_scalar_a = composer.add_input(scalar_a);
                 let point_a = generator;
-                let expected_component_a: TEGroupAffine<P> = AffineCurve::mul(
-                    &point_a,
-                    util::to_embedded_curve_scalar::<F, P>(scalar_a),
-                )
-                .into();
+                let expected_component_a: TEGroupAffine<P> =
+                    AffineCurve::mul(&point_a, util::to_embedded_curve_scalar::<F, P>(scalar_a))
+                        .into();
 
                 // Second component
                 let scalar_b = F::from(445566u64);
                 let secret_scalar_b = composer.add_input(scalar_b);
                 let point_b = point_a.double() + point_a;
-                let expected_component_b: TEGroupAffine<P> = AffineCurve::mul(
-                    &point_b,
-                    util::to_embedded_curve_scalar::<F, P>(scalar_b),
-                )
-                .into();
+                let expected_component_b: TEGroupAffine<P> =
+                    AffineCurve::mul(&point_b, util::to_embedded_curve_scalar::<F, P>(scalar_b))
+                        .into();
 
                 // Expected pedersen hash
-                let expected_point = (AffineCurve::mul(
-                    &point_a,
-                    util::to_embedded_curve_scalar::<F, P>(scalar_a),
-                ) + AffineCurve::mul(
-                    &point_b,
-                    util::to_embedded_curve_scalar::<F, P>(scalar_b),
-                ))
-                .into();
+                let expected_point =
+                    (AffineCurve::mul(&point_a, util::to_embedded_curve_scalar::<F, P>(scalar_a))
+                        + AffineCurve::mul(
+                            &point_b,
+                            util::to_embedded_curve_scalar::<F, P>(scalar_b),
+                        ))
+                    .into();
 
                 // To check this pedersen commitment, we will need to do:
                 // - Two scalar multiplications
                 // - One curve addition
                 //
                 // Scalar multiplications
-                let component_a =
-                    composer.fixed_base_scalar_mul(secret_scalar_a, point_a);
-                let component_b =
-                    composer.fixed_base_scalar_mul(secret_scalar_b, point_b);
+                let component_a = composer.fixed_base_scalar_mul(secret_scalar_a, point_a);
+                let component_b = composer.fixed_base_scalar_mul(secret_scalar_b, point_b);
 
                 // Depending on the context, one can check if the resulting
                 // components are as expected
                 //
-                composer.assert_equal_public_point(
-                    component_a,
-                    expected_component_a,
-                );
-                composer.assert_equal_public_point(
-                    component_b,
-                    expected_component_b,
-                );
+                composer.assert_equal_public_point(component_a, expected_component_a);
+                composer.assert_equal_public_point(component_b, expected_component_b);
 
                 // Curve addition
-                let commitment =
-                    composer.point_addition_gate(component_a, component_b);
+                let commitment = composer.point_addition_gate(component_a, component_b);
 
                 // Add final constraints to ensure that the commitment that we
                 // computed is equal to the public point
@@ -422,26 +386,18 @@ mod tests {
                 )
                 .into();
 
-                let point_a =
-                    composer.fixed_base_scalar_mul(secret_scalar_a, generator);
-                let point_b =
-                    composer.fixed_base_scalar_mul(secret_scalar_b, generator);
-                let point_c =
-                    composer.fixed_base_scalar_mul(secret_scalar_c, generator);
-                let point_d =
-                    composer.fixed_base_scalar_mul(secret_scalar_d, generator);
+                let point_a = composer.fixed_base_scalar_mul(secret_scalar_a, generator);
+                let point_b = composer.fixed_base_scalar_mul(secret_scalar_b, generator);
+                let point_c = composer.fixed_base_scalar_mul(secret_scalar_c, generator);
+                let point_d = composer.fixed_base_scalar_mul(secret_scalar_d, generator);
 
-                let commitment_lhs =
-                    composer.point_addition_gate(point_a, point_b);
-                let commitment_rhs =
-                    composer.point_addition_gate(point_c, point_d);
+                let commitment_lhs = composer.point_addition_gate(point_a, point_b);
+                let commitment_rhs = composer.point_addition_gate(point_c, point_d);
 
                 composer.assert_equal_point(commitment_lhs, commitment_rhs);
 
-                composer
-                    .assert_equal_public_point(commitment_lhs, expected_lhs);
-                composer
-                    .assert_equal_public_point(commitment_rhs, expected_rhs);
+                composer.assert_equal_public_point(commitment_lhs, expected_lhs);
+                composer.assert_equal_public_point(commitment_rhs, expected_rhs);
             },
             2048,
         );
@@ -460,7 +416,7 @@ mod tests {
         ],
         [] => (
             Bls12_381,
-            ark_ed_on_bls12_381::EdwardsParameters
+            ark_ed_on_bls12_381::EdwardsConfig
         )
     );
 
@@ -476,7 +432,7 @@ mod tests {
         ],
         [] => (
             Bls12_377,
-            ark_ed_on_bls12_377::EdwardsParameters
+            ark_ed_on_bls12_377::EdwardsConfig
         )
     );
 }

@@ -13,7 +13,7 @@ use ark_ff::FftField;
 use ark_poly::{
     domain::{EvaluationDomain, GeneralEvaluationDomain},
     univariate::DensePolynomial,
-    UVPolynomial,
+    DenseMVPolynomial as UVPolynomial,
 };
 use constants::*;
 use hashbrown::HashMap;
@@ -98,10 +98,7 @@ impl Permutation {
     }
     /// Performs shift by one permutation and computes `sigma_1`, `sigma_2` and
     /// `sigma_3`, `sigma_4` permutations from the variable maps.
-    pub(super) fn compute_sigma_permutations(
-        &mut self,
-        n: usize,
-    ) -> [Vec<WireData>; 4] {
+    pub(super) fn compute_sigma_permutations(&mut self, n: usize) -> [Vec<WireData>; 4] {
         let sigma_1 = (0..n).map(WireData::Left).collect::<Vec<_>>();
         let sigma_2 = (0..n).map(WireData::Right).collect::<Vec<_>>();
         let sigma_3 = (0..n).map(WireData::Output).collect::<Vec<_>>();
@@ -192,17 +189,12 @@ impl Permutation {
         let left_sigma = self.compute_permutation_lagrange(&sigmas[0], domain);
         let right_sigma = self.compute_permutation_lagrange(&sigmas[1], domain);
         let out_sigma = self.compute_permutation_lagrange(&sigmas[2], domain);
-        let fourth_sigma =
-            self.compute_permutation_lagrange(&sigmas[3], domain);
+        let fourth_sigma = self.compute_permutation_lagrange(&sigmas[3], domain);
 
-        let left_sigma_poly =
-            DensePolynomial::from_coefficients_vec(domain.ifft(&left_sigma));
-        let right_sigma_poly =
-            DensePolynomial::from_coefficients_vec(domain.ifft(&right_sigma));
-        let out_sigma_poly =
-            DensePolynomial::from_coefficients_vec(domain.ifft(&out_sigma));
-        let fourth_sigma_poly =
-            DensePolynomial::from_coefficients_vec(domain.ifft(&fourth_sigma));
+        let left_sigma_poly = DensePolynomial::from_coefficients_vec(domain.ifft(&left_sigma));
+        let right_sigma_poly = DensePolynomial::from_coefficients_vec(domain.ifft(&right_sigma));
+        let out_sigma_poly = DensePolynomial::from_coefficients_vec(domain.ifft(&out_sigma));
+        let fourth_sigma_poly = DensePolynomial::from_coefficients_vec(domain.ifft(&fourth_sigma));
 
         (
             left_sigma_poly,
@@ -240,29 +232,22 @@ impl Permutation {
         let fourth_sigma_mapping = domain.fft(fourth_sigma_poly);
 
         // Compute beta * sigma polynomials
-        let beta_left_sigma_iter =
-            left_sigma_mapping.iter().map(|sigma| *sigma * beta);
-        let beta_right_sigma_iter =
-            right_sigma_mapping.iter().map(|sigma| *sigma * beta);
-        let beta_out_sigma_iter =
-            out_sigma_mapping.iter().map(|sigma| *sigma * beta);
-        let beta_fourth_sigma_iter =
-            fourth_sigma_mapping.iter().map(|sigma| *sigma * beta);
+        let beta_left_sigma_iter = left_sigma_mapping.iter().map(|sigma| *sigma * beta);
+        let beta_right_sigma_iter = right_sigma_mapping.iter().map(|sigma| *sigma * beta);
+        let beta_out_sigma_iter = out_sigma_mapping.iter().map(|sigma| *sigma * beta);
+        let beta_fourth_sigma_iter = fourth_sigma_mapping.iter().map(|sigma| *sigma * beta);
 
         // Compute beta * roots
         let beta_roots_iter = domain.elements().map(|root| root * beta);
 
         // Compute beta * roots * K1
-        let beta_roots_k1_iter =
-            domain.elements().map(|root| K1::<F>() * beta * root);
+        let beta_roots_k1_iter = domain.elements().map(|root| K1::<F>() * beta * root);
 
         // Compute beta * roots * K2
-        let beta_roots_k2_iter =
-            domain.elements().map(|root| K2::<F>() * beta * root);
+        let beta_roots_k2_iter = domain.elements().map(|root| K2::<F>() * beta * root);
 
         // Compute beta * roots * K3
-        let beta_roots_k3_iter =
-            domain.elements().map(|root| K3::<F>() * beta * root);
+        let beta_roots_k3_iter = domain.elements().map(|root| K3::<F>() * beta * root);
 
         // Compute left_wire + gamma
         let w_l_gamma: Vec<_> = w_l.map(|w| w + gamma).collect();
@@ -422,8 +407,7 @@ impl Permutation {
         let n = domain.size();
 
         // Compute beta * roots
-        let common_roots: Vec<F> =
-            domain.elements().map(|root| root * beta).collect();
+        let common_roots: Vec<F> = domain.elements().map(|root| root * beta).collect();
 
         let left_sigma_mapping = domain.fft(left_sigma_poly);
         let right_sigma_mapping = domain.fft(right_sigma_poly);
@@ -474,20 +458,16 @@ impl Permutation {
             .collect();
 
         // Compute left_wire + gamma
-        let w_l_gamma: Vec<_> =
-            w_l.iter().copied().map(|w_l| w_l + gamma).collect();
+        let w_l_gamma: Vec<_> = w_l.iter().copied().map(|w_l| w_l + gamma).collect();
 
         // Compute right_wire + gamma
-        let w_r_gamma: Vec<_> =
-            w_r.iter().copied().map(|w_r| w_r + gamma).collect();
+        let w_r_gamma: Vec<_> = w_r.iter().copied().map(|w_r| w_r + gamma).collect();
 
         // Compute out_wire + gamma
-        let w_o_gamma: Vec<_> =
-            w_o.iter().copied().map(|w_o| w_o + gamma).collect();
+        let w_o_gamma: Vec<_> = w_o.iter().copied().map(|w_o| w_o + gamma).collect();
 
         // Compute fourth_wire + gamma
-        let w_4_gamma: Vec<_> =
-            w_4.iter().copied().map(|w_4| w_4 + gamma).collect();
+        let w_4_gamma: Vec<_> = w_4.iter().copied().map(|w_4| w_4 + gamma).collect();
 
         // Compute 6 accumulator components
         // Parallisable
@@ -626,23 +606,11 @@ impl Permutation {
 
     // These are the formulas for the irreducible factors used in the product
     // argument
-    fn numerator_irreducible<F: FftField>(
-        root: F,
-        w: F,
-        k: F,
-        beta: F,
-        gamma: F,
-    ) -> F {
+    fn numerator_irreducible<F: FftField>(root: F, w: F, k: F, beta: F, gamma: F) -> F {
         w + beta * k * root + gamma
     }
 
-    fn denominator_irreducible<F: FftField>(
-        _root: F,
-        w: F,
-        sigma: F,
-        beta: F,
-        gamma: F,
-    ) -> F {
+    fn denominator_irreducible<F: FftField>(_root: F, w: F, sigma: F, beta: F, gamma: F) -> F {
         w + beta * sigma + gamma
     }
 
@@ -677,8 +645,8 @@ impl Permutation {
         // Transpose wires and sigma values to get "rows" in the form [wl_i,
         // wr_i, wo_i, ... ] where each row contains the wire and sigma
         // values for a single gate
-        let gatewise_wires = izip!(wires.0, wires.1, wires.2, wires.3)
-            .map(|(w0, w1, w2, w3)| vec![w0, w1, w2, w3]);
+        let gatewise_wires =
+            izip!(wires.0, wires.1, wires.2, wires.3).map(|(w0, w1, w2, w3)| vec![w0, w1, w2, w3]);
         let gatewise_sigmas = izip!(
             sigma_mappings.0,
             sigma_mappings.1,
@@ -709,9 +677,7 @@ impl Permutation {
                     wire_params
                         .clone()
                         .map(|(_sigma, wire, k)| {
-                            Permutation::numerator_irreducible(
-                                gate_root, *wire, *k, beta, gamma,
-                            )
+                            Permutation::numerator_irreducible(gate_root, *wire, *k, beta, gamma)
                         })
                         .product::<F>(),
                     // Denominator product
@@ -781,9 +747,7 @@ impl Permutation {
             // Derive the numerator and denominator for each gate plonkup
             // gate and pair the results
             .map(|(((((f, t), t_next), h_1), h_1_next), h_2)| {
-                Self::lookup_ratio(
-                    delta, epsilon, *f, *t, t_next, *h_1, h_1_next, *h_2,
-                )
+                Self::lookup_ratio(delta, epsilon, *f, *t, t_next, *h_1, h_1_next, *h_2)
             })
             .collect();
 
@@ -826,12 +790,10 @@ impl Permutation {
 mod test {
     use super::*;
     use crate::{batch_test_field, batch_test_field_params};
-    use crate::{
-        constraint_system::StandardComposer, util::EvaluationDomainExt,
-    };
+    use crate::{constraint_system::StandardComposer, util::EvaluationDomainExt};
     use ark_bls12_377::Bls12_377;
     use ark_bls12_381::Bls12_381;
-    use ark_ec::TEModelParameters;
+    use ark_ec::twisted_edwards::TECurveConfig as TEModelParameters;
     use ark_ff::{Field, PrimeField};
     use ark_poly::univariate::DensePolynomial;
     use ark_poly::Polynomial;
@@ -842,8 +804,7 @@ mod test {
         F: PrimeField,
         P: TEModelParameters<BaseField = F>,
     {
-        let mut cs: StandardComposer<F, P> =
-            StandardComposer::<F, P>::with_expected_size(4);
+        let mut cs: StandardComposer<F, P> = StandardComposer::<F, P>::with_expected_size(4);
 
         let zero = F::zero();
         let one = F::one();
@@ -866,18 +827,13 @@ mod test {
         // x3 * x4 = 2*x2
         cs.poly_gate(x3, x4, x2, one, zero, zero, -two, zero, None);
 
-        let domain =
-            GeneralEvaluationDomain::<F>::new(cs.circuit_bound()).unwrap();
+        let domain = GeneralEvaluationDomain::<F>::new(cs.circuit_bound()).unwrap();
 
         let pad = vec![F::zero(); domain.size() - cs.w_l.len()];
-        let mut w_l_scalar: Vec<F> =
-            cs.w_l.iter().map(|v| cs.variables[v]).collect();
-        let mut w_r_scalar: Vec<F> =
-            cs.w_r.iter().map(|v| cs.variables[v]).collect();
-        let mut w_o_scalar: Vec<F> =
-            cs.w_o.iter().map(|v| cs.variables[v]).collect();
-        let mut w_4_scalar: Vec<F> =
-            cs.w_4.iter().map(|v| cs.variables[v]).collect();
+        let mut w_l_scalar: Vec<F> = cs.w_l.iter().map(|v| cs.variables[v]).collect();
+        let mut w_r_scalar: Vec<F> = cs.w_r.iter().map(|v| cs.variables[v]).collect();
+        let mut w_o_scalar: Vec<F> = cs.w_o.iter().map(|v| cs.variables[v]).collect();
+        let mut w_4_scalar: Vec<F> = cs.w_4.iter().map(|v| cs.variables[v]).collect();
 
         w_l_scalar.extend(&pad);
         w_r_scalar.extend(&pad);
@@ -1033,8 +989,7 @@ mod test {
         assert_eq!(fourth_sigma[2], WireData::Fourth(3));
         assert_eq!(fourth_sigma[3], WireData::Fourth(0));
 
-        let domain =
-            GeneralEvaluationDomain::<F>::new(num_wire_mappings).unwrap();
+        let domain = GeneralEvaluationDomain::<F>::new(num_wire_mappings).unwrap();
         let w = domain.group_gen();
         let w_squared = w.pow([2, 0, 0, 0]);
         let w_cubed = w.pow([3, 0, 0, 0]);
@@ -1042,8 +997,7 @@ mod test {
         // Check the left sigmas have been encoded properly
         // Left_sigma = {R0, L2, L3, L0}
         // Should turn into {1 * K1, w^2, w^3, 1}
-        let encoded_left_sigma =
-            perm.compute_permutation_lagrange(left_sigma, &domain);
+        let encoded_left_sigma = perm.compute_permutation_lagrange(left_sigma, &domain);
         assert_eq!(encoded_left_sigma[0], F::one() * K1::<F>());
         assert_eq!(encoded_left_sigma[1], w_squared);
         assert_eq!(encoded_left_sigma[2], w_cubed);
@@ -1052,8 +1006,7 @@ mod test {
         // Check the right sigmas have been encoded properly
         // Right_sigma = {L1, R1, R2, R3}
         // Should turn into {w, w * K1, w^2 * K1, w^3 * K1}
-        let encoded_right_sigma =
-            perm.compute_permutation_lagrange(right_sigma, &domain);
+        let encoded_right_sigma = perm.compute_permutation_lagrange(right_sigma, &domain);
         assert_eq!(encoded_right_sigma[0], w);
         assert_eq!(encoded_right_sigma[1], w * K1::<F>());
         assert_eq!(encoded_right_sigma[2], w_squared * K1::<F>());
@@ -1063,8 +1016,7 @@ mod test {
         // Out_sigma = {O0, O1, O2, O3}
         // Should turn into {1 * K2, w * K2, w^2 * K2, w^3 * K2}
 
-        let encoded_output_sigma =
-            perm.compute_permutation_lagrange(out_sigma, &domain);
+        let encoded_output_sigma = perm.compute_permutation_lagrange(out_sigma, &domain);
         assert_eq!(encoded_output_sigma[0], F::one() * K2::<F>());
         assert_eq!(encoded_output_sigma[1], w * K2::<F>());
         assert_eq!(encoded_output_sigma[2], w_squared * K2::<F>());
@@ -1073,28 +1025,18 @@ mod test {
         // Check the fourth sigmas have been encoded properly
         // Out_sigma = {F1, F2, F3, F0}
         // Should turn into {w * K3, w^2 * K3, w^3 * K3, 1 * K3}
-        let encoded_fourth_sigma =
-            perm.compute_permutation_lagrange(fourth_sigma, &domain);
+        let encoded_fourth_sigma = perm.compute_permutation_lagrange(fourth_sigma, &domain);
         assert_eq!(encoded_fourth_sigma[0], w * K3::<F>());
         assert_eq!(encoded_fourth_sigma[1], w_squared * K3::<F>());
         assert_eq!(encoded_fourth_sigma[2], w_cubed * K3::<F>());
         assert_eq!(encoded_fourth_sigma[3], K3());
 
-        let w_l =
-            vec![F::from(2u64), F::from(2u64), F::from(2u64), F::from(2u64)];
+        let w_l = vec![F::from(2u64), F::from(2u64), F::from(2u64), F::from(2u64)];
         let w_r = vec![F::from(2_u64), F::one(), F::one(), F::one()];
         let w_o = vec![F::one(), F::one(), F::one(), F::one()];
         let w_4 = vec![F::one(), F::one(), F::one(), F::one()];
 
-        test_correct_permutation_poly(
-            num_wire_mappings,
-            perm,
-            &domain,
-            w_l,
-            w_r,
-            w_o,
-            w_4,
-        );
+        test_correct_permutation_poly(num_wire_mappings, perm, &domain, w_l, w_r, w_o, w_4);
     }
     fn test_permutation_compute_sigmas<F: FftField>() {
         let mut perm: Permutation = Permutation::new();
@@ -1164,38 +1106,33 @@ mod test {
         Fourth_Sigma : {0,1,2,3} -> {F1, F2, F3, F0}
             When encoded using w, K1, K2,K3 we have {w * K3, w^2 * K3, w^3 * K3, 1 * K3}
         */
-        let domain =
-            GeneralEvaluationDomain::<F>::new(num_wire_mappings).unwrap();
+        let domain = GeneralEvaluationDomain::<F>::new(num_wire_mappings).unwrap();
         let w = domain.group_gen();
         let w_squared = w.pow([2, 0, 0, 0]);
         let w_cubed = w.pow([3, 0, 0, 0]);
         // check the left sigmas have been encoded properly
-        let encoded_left_sigma =
-            perm.compute_permutation_lagrange(left_sigma, &domain);
+        let encoded_left_sigma = perm.compute_permutation_lagrange(left_sigma, &domain);
         assert_eq!(encoded_left_sigma[0], K1());
         assert_eq!(encoded_left_sigma[1], w * K2::<F>());
         assert_eq!(encoded_left_sigma[2], w_squared * K1::<F>());
         assert_eq!(encoded_left_sigma[3], F::one() * K2::<F>());
 
         // check the right sigmas have been encoded properly
-        let encoded_right_sigma =
-            perm.compute_permutation_lagrange(right_sigma, &domain);
+        let encoded_right_sigma = perm.compute_permutation_lagrange(right_sigma, &domain);
         assert_eq!(encoded_right_sigma[0], w * K1::<F>());
         assert_eq!(encoded_right_sigma[1], w_squared * K2::<F>());
         assert_eq!(encoded_right_sigma[2], w_cubed * K2::<F>());
         assert_eq!(encoded_right_sigma[3], F::one());
 
         // check the output sigmas have been encoded properly
-        let encoded_output_sigma =
-            perm.compute_permutation_lagrange(out_sigma, &domain);
+        let encoded_output_sigma = perm.compute_permutation_lagrange(out_sigma, &domain);
         assert_eq!(encoded_output_sigma[0], w);
         assert_eq!(encoded_output_sigma[1], w_cubed);
         assert_eq!(encoded_output_sigma[2], w_cubed * K1::<F>());
         assert_eq!(encoded_output_sigma[3], w_squared);
 
         // check the fourth sigmas have been encoded properly
-        let encoded_fourth_sigma =
-            perm.compute_permutation_lagrange(fourth_sigma, &domain);
+        let encoded_fourth_sigma = perm.compute_permutation_lagrange(fourth_sigma, &domain);
         assert_eq!(encoded_fourth_sigma[0], w * K3::<F>());
         assert_eq!(encoded_fourth_sigma[1], w_squared * K3::<F>());
         assert_eq!(encoded_fourth_sigma[2], w_cubed * K3::<F>());
@@ -1205,8 +1142,7 @@ mod test {
     fn test_basic_slow_permutation_poly<F: FftField>() {
         let num_wire_mappings = 2;
         let mut perm = Permutation::new();
-        let domain =
-            GeneralEvaluationDomain::<F>::new(num_wire_mappings).unwrap();
+        let domain = GeneralEvaluationDomain::<F>::new(num_wire_mappings).unwrap();
 
         let var_one = perm.new_variable();
         let var_two = perm.new_variable();
@@ -1221,15 +1157,7 @@ mod test {
         let w_o = vec![F::from(3u64), F::one()];
         let w_4 = vec![F::one(), F::one()];
 
-        test_correct_permutation_poly(
-            num_wire_mappings,
-            perm,
-            &domain,
-            w_l,
-            w_r,
-            w_o,
-            w_4,
-        );
+        test_correct_permutation_poly(num_wire_mappings, perm, &domain, w_l, w_r, w_o, w_4);
     }
 
     // shifts the polynomials by one root of unity
@@ -1257,12 +1185,8 @@ mod test {
 
         //1. Compute the permutation polynomial using both methods
         //
-        let (
-            left_sigma_poly,
-            right_sigma_poly,
-            out_sigma_poly,
-            fourth_sigma_poly,
-        ) = perm.compute_sigma_polynomials(n, domain);
+        let (left_sigma_poly, right_sigma_poly, out_sigma_poly, fourth_sigma_poly) =
+            perm.compute_sigma_polynomials(n, domain);
         let (z_vec, numerator_components, denominator_components) = perm
             .compute_slow_permutation_poly(
                 domain,
@@ -1318,8 +1242,7 @@ mod test {
 
         //3. Now we perform the two checks that need to be done on the
         // permutation polynomial (z)
-        let z_poly =
-            DensePolynomial::<F>::from_coefficients_vec(domain.ifft(&z_vec));
+        let z_poly = DensePolynomial::<F>::from_coefficients_vec(domain.ifft(&z_vec));
         //
         // Check that z(w^{n+1}) == z(1) == 1
         // This is the first check in the protocol
@@ -1344,10 +1267,7 @@ mod test {
             let current_copy_perm_product = &denominator_components[i];
             assert_ne!(current_copy_perm_product, &F::zero());
 
-            assert_ne!(
-                current_copy_perm_product,
-                current_identity_perm_product
-            );
+            assert_ne!(current_copy_perm_product, current_identity_perm_product);
 
             let z_eval = z_poly.evaluate(&current_root);
             assert_ne!(z_eval, F::zero());
@@ -1368,9 +1288,7 @@ mod test {
 
         // Test that the shifted polynomial is correct
         let shifted_z = shift_poly_by_one(fast_z_vec);
-        let shifted_z_poly = DensePolynomial::<F>::from_coefficients_vec(
-            domain.ifft(&shifted_z),
-        );
+        let shifted_z_poly = DensePolynomial::<F>::from_coefficients_vec(domain.ifft(&shifted_z));
         for element in domain.elements() {
             let z_eval = z_poly.evaluate(&(element * domain.group_gen()));
             let shifted_z_eval = shifted_z_poly.evaluate(&element);
@@ -1410,7 +1328,7 @@ mod test {
         []
         => (
             Bls12_381,
-            ark_ed_on_bls12_381::EdwardsParameters
+            ark_ed_on_bls12_381::EdwardsConfig
         )
     );
 
@@ -1421,7 +1339,7 @@ mod test {
         []
         => (
             Bls12_377,
-            ark_ed_on_bls12_377::EdwardsParameters
+            ark_ed_on_bls12_377::EdwardsConfig
         )
     );
 }

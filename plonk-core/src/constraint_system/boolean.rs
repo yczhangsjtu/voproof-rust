@@ -7,7 +7,7 @@
 //! Boolean Gates
 
 use crate::constraint_system::{StandardComposer, Variable};
-use ark_ec::ModelParameters;
+use ark_ec::CurveConfig as ModelParameters;
 use ark_ff::PrimeField;
 
 impl<F, P> StandardComposer<F, P>
@@ -59,13 +59,10 @@ where
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::{
-        batch_test, commitment::HomomorphicCommitment,
-        constraint_system::helper::*,
-    };
+    use crate::{batch_test, commitment::HomomorphicCommitment, constraint_system::helper::*};
     use ark_bls12_377::Bls12_377;
     use ark_bls12_381::Bls12_381;
-    use ark_ec::TEModelParameters;
+    use ark_ec::twisted_edwards::TECurveConfig as TEModelParameters;
 
     fn test_correct_bool_gate<F, P, PC>()
     where
@@ -110,7 +107,7 @@ mod test {
             test_incorrect_bool_gate
         ],
         [] => (
-            Bls12_381, ark_ed_on_bls12_381::EdwardsParameters
+            Bls12_381, ark_ed_on_bls12_381::EdwardsConfig
         )
     );
 
@@ -121,6 +118,6 @@ mod test {
             test_incorrect_bool_gate
         ],
         [] => (
-            Bls12_377, ark_ed_on_bls12_377::EdwardsParameters        )
+            Bls12_377, ark_ed_on_bls12_377::EdwardsConfig        )
     );
 }

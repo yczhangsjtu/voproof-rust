@@ -7,7 +7,7 @@
 //! Fixed-Base Curve Addition Gate
 
 use crate::constraint_system::{StandardComposer, Variable};
-use ark_ec::models::TEModelParameters;
+use ark_ec::models::twisted_edwards::TECurveConfig as TEModelParameters;
 use ark_ff::PrimeField;
 
 /// Contains all of the components needed to verify that a bit scalar
