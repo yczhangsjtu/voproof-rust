@@ -1,6 +1,5 @@
 use ark_ff::Field;
-use ark_serialize::{CanonicalSerialize, CanonicalDeserialize, SerializationError};
-use ark_std::{io::{Read, Write}};
+use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
 
 pub trait CSSize {}
 pub trait ConstraintSystem<F: Field, S: CSSize> {
@@ -9,7 +8,7 @@ pub trait ConstraintSystem<F: Field, S: CSSize> {
 pub trait Instance<F: Field> {}
 pub trait Witness<F: Field> {}
 
+pub mod circuit;
 pub mod hpr;
 pub mod pov;
 pub mod r1cs;
-pub mod circuit;

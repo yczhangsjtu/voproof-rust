@@ -4,7 +4,7 @@ use ark_ec::{
   CurveGroup as ProjectiveCurve,
 };
 use ark_ff::PrimeField as Field;
-use ark_std::{iter::Iterator, ops::Mul, rand::RngCore, vec, vec::Vec};
+use ark_std::{rand::RngCore, vec};
 use sha2::{Digest, Sha256};
 
 pub fn to_field<F: Field>(i: u64) -> F {

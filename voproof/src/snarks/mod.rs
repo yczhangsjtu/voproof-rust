@@ -14,21 +14,15 @@ use crate::*;
 use ark_ec::{
   pairing::Pairing as PairingEngine, AffineRepr as AffineCurve, CurveGroup as ProjectiveCurve,
 };
-use ark_ff::{fields::batch_inversion, FftField, Field, FpConfig as FpParameters, PrimeField};
+use ark_ff::{fields::batch_inversion, FftField, Field};
 use ark_poly::{
   univariate::DensePolynomial as DensePoly, EvaluationDomain, Evaluations, GeneralEvaluationDomain,
   Polynomial,
 };
 use ark_poly_commit::DenseUVPolynomial as UVPolynomial;
-use ark_serialize::{CanonicalDeserialize, CanonicalSerialize, SerializationError};
+use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
 use ark_std::{
-  collections::hash_map::HashMap,
-  end_timer,
-  io::{Read, Write},
-  ops::Mul,
-  start_timer, test_rng,
-  vec::Vec,
-  One, Zero,
+  collections::hash_map::HashMap, end_timer, ops::Mul, start_timer, test_rng, vec::Vec, One, Zero,
 };
 
 pub trait SNARKProverKey<E: PairingEngine> {}

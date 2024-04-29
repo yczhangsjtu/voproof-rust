@@ -1,7 +1,5 @@
 use ark_poly_commit::Error as PolyError;
-use ark_std::boxed::Box;
 use ark_std::fmt::{self, Debug, Display};
-use ark_std::string::String;
 
 pub trait VOProofError: core::fmt::Debug + core::fmt::Display {
   fn source(&self) -> Option<&(dyn VOProofError + 'static)> {

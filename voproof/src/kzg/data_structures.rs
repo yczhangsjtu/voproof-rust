@@ -1,6 +1,6 @@
 use crate::*;
 use ark_ec::{pairing::Pairing as PairingEngine, AffineRepr as AffineCurve, Group as _};
-use ark_ff::{Field, PrimeField, ToConstraintField, Zero};
+use ark_ff::{Field, PrimeField, ToConstraintField};
 use ark_poly_commit::*;
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize, SerializationError, Valid};
 use ark_std::{

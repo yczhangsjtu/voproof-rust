@@ -1,7 +1,7 @@
 use super::*;
 use crate::tools::*;
 use crate::*;
-use ark_ff::{Field, PrimeField};
+use ark_ff::PrimeField;
 use ark_relations::r1cs::ConstraintSystem as ArkR1CS;
 
 #[derive(Clone, CanonicalSerialize, CanonicalDeserialize)]

@@ -1,7 +1,6 @@
 use super::circuit::fan_in_two::FanInTwoCircuit;
+use super::r1cs::{R1CSInstance, R1CSWitness, R1CS};
 use super::*;
-use super::r1cs::{R1CS, R1CSInstance, R1CSWitness};
-use ark_ff::Field;
 
 #[derive(Clone, CanonicalSerialize, CanonicalDeserialize)]
 pub struct POV<F: Field> {
@@ -140,10 +139,7 @@ pub fn pov_pair_from_r1cs_pair<F: Field>(
   let mut circ = FanInTwoCircuit::from(r1cs);
   circ.assign_public_io(&instance.instance).unwrap();
   let x = circ.get_instance().unwrap();
-  (
-    POV::from(circ),
-    POVInstance { instance: x },
-  )
+  (POV::from(circ), POVInstance { instance: x })
 }
 
 pub fn pov_triple_from_r1cs_triple<F: Field>(
@@ -171,8 +167,8 @@ pub fn pov_triple_from_r1cs_triple<F: Field>(
 #[cfg(test)]
 mod tests {
   use super::*;
-  use crate::*;
   use crate::tools::*;
+  use crate::*;
   use ark_bls12_381::Bls12_381 as E;
   use ark_ec::PairingEngine;
 
@@ -197,10 +193,18 @@ mod tests {
     circ.mark_variable_as_public(&a).unwrap();
     circ.mark_variable_as_public(&p).unwrap();
     circ
-      .evaluate(&vec![to_field::<E::Fr>(1), to_field::<E::Fr>(2), to_field::<E::Fr>(3)])
+      .evaluate(&vec![
+        to_field::<E::Fr>(1),
+        to_field::<E::Fr>(2),
+        to_field::<E::Fr>(3),
+      ])
       .unwrap();
-    let ins = POVInstance{ instance: circ.get_instance().unwrap() };
-    let wit = POVWitness{ witness: circ.get_witness().unwrap() };
+    let ins = POVInstance {
+      instance: circ.get_instance().unwrap(),
+    };
+    let wit = POVWitness {
+      witness: circ.get_witness().unwrap(),
+    };
     println!("{:?}", ins.instance.0);
     println!("{}", fmt_ff_vector!(ins.instance.1));
     println!("{}", fmt_ff_vector!(wit.witness.0));
