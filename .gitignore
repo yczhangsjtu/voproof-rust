@@ -1,0 +1,3 @@
+/target
+*.pyc
+test_result*

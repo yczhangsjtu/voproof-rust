@@ -1,0 +1,23 @@
+[workspace]
+members = [
+    "voproof",
+    "crypto-primitives",
+    "macros",
+    "plonk",
+    "plonk-core",
+    "plonk-hashing",
+]
+resolver = "2"
+
+[workspace.package]
+version = "0.2.0"
+authors = ["Yuncong Zhang"]
+description = "The rust implementation of the VOProof zkSNARK."
+homepage = "https://github.com/yczhangsjtu/voproof"
+repository = "https://github.com/yczhangsjtu/voproof"
+documentation = "https://github.com/yczhangsjtu/voproof"
+keywords = ["r1cs", "pedersen", "blake2s", "snark", "schnorr"]
+categories = ["cryptography"]
+include = ["Cargo.toml", "src", "README.md", "LICENSE-APACHE", "LICENSE-MIT"]
+license = "MIT OR Apache-2.0"
+edition = "2021"

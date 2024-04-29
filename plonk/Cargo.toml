@@ -1,0 +1,49 @@
+[package]
+name = "plonk-voproof"
+description = "A fork of the ZK-Garage/plonk crate."
+documentation.workspace = true
+keywords.workspace = true
+version.workspace = true
+authors.workspace = true
+homepage.workspace = true
+repository.workspace = true
+categories.workspace = true
+include.workspace = true
+license.workspace = true
+edition.workspace = true
+
+[package.metadata.docs.rs]
+# To build locally:
+# RUSTDOCFLAGS="--cfg doc_cfg" cargo +nightly doc --all-features --open
+all-features = true
+rustdoc-args = ["--cfg", "doc_cfg"]
+
+[dependencies]
+plonk-core-voproof = { path = "../plonk-core" }
+plonk-hashing-voproof = { path = "../plonk-hashing" }
+
+[dev-dependencies]
+ark-ff = "0.4.2"
+ark-sponge = "0.3.0"
+ark-std = "0.4.0"
+ark-bls12-377 = "0.4.0"
+ark-bls12-381 = "0.4.0"
+ark-ec = "0.4.2"
+ark-ed-on-bls12-377 = "0.4.0"
+ark-ed-on-bls12-381 = "0.4.0"
+ark-poly = "0.4.2"
+ark-poly-commit = "0.4.0"
+blake2 = "0.10.6"
+criterion = "0.5.1"
+derivative = "2.2.0"
+paste = "1.0.6"
+rand_core = { version = "0.6", default-features = false, features = [
+    "getrandom",
+] }
+tempdir = "0.3"
+ark-vesta = "0.4.0"
+
+
+[[bench]]
+name = "plonk"
+harness = false

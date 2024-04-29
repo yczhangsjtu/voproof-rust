@@ -1,0 +1,66 @@
+[package]
+name = "voproof"
+description.workspace = true
+documentation.workspace = true
+keywords.workspace = true
+version.workspace = true
+authors.workspace = true
+homepage.workspace = true
+repository.workspace = true
+categories.workspace = true
+include.workspace = true
+license.workspace = true
+edition.workspace = true
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+ark-serialize = { version = "^0.4.2", default-features = false, features = [
+    "derive",
+] }
+ark-poly-commit = "0.4.0"
+ark-poly = { version = "^0.4.2", default-features = false }
+ark-ec = { version = "^0.4.2", default-features = false }
+ark-bls12-381 = { version = "^0.4.0", default-features = false, features = [
+    "curve",
+] }
+ark-bls12-377 = { version = "^0.4.0", default-features = false, features = [
+    "curve",
+] }
+ark-std = { version = "^0.4.0", default-features = false }
+ark-ff = { version = "^0.4.0", default-features = false }
+ark-relations = "^0.4.0"
+derivative = { version = "2", features = ["use_core"] }
+sha2 = "0.10.8"
+ark-marlin = "0.3.0"
+blake2 = "0.10.6"
+rayon = { version = "1", optional = true }
+
+[dev-dependencies]
+crypto-primitives-voproof = { version = "^0.2.0", path = "../crypto-primitives" }
+ark-sponge = "^0.3.0"
+ark-r1cs-std = "^0.4.0"
+ark-groth16 = "^0.4.0"
+plonk-voproof = { version = "^0.2.0", path = "../plonk" }
+rand_core = "0.6"
+ark-ed-on-bls12-381 = "0.4"
+
+[features]
+default = ["std", "parallel", "crypto-primitives-voproof/r1cs"]
+std = [
+    "ark-ff/std",
+    "ark-ec/std",
+    "ark-poly/std",
+    "ark-std/std",
+    "ark-relations/std",
+    "ark-serialize/std",
+]
+print-trace = ["ark-std/print-trace"]
+parallel = [
+    "std",
+    "ark-ff/parallel",
+    "ark-ec/parallel",
+    "ark-poly/parallel",
+    "ark-std/parallel",
+    "rayon",
+]
