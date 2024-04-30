@@ -4,6 +4,7 @@ from sympy.abc import alpha, beta, gamma, X, D, S
 from .vo_protocol import VOProtocol, VOProtocolExecution
 from .piop import PIOPExecution
 from .vo2piop import PIOPFromVOProtocol
+from .pc_protocol import ProverComputes, VerifierComputes
 from .zksnark import ZKSNARKFromPIOPExecKZG
 from .symbol.vector import get_named_vector, UnitVector
 from .symbol.names import reset_name_counters, get_name
@@ -62,7 +63,7 @@ def dump_performance(piopexec, zkSNARK, name):
   print("%s prover G-exps: %s" % (name, latex(p_g_exps)))
   print()
 
-def compile(protocol,
+def compile(protocol: VOProtocol,
             symbols,
             filename=None):
   name = protocol.__class__.__name__
@@ -81,6 +82,8 @@ def compile(protocol,
   for rust_name, symbol in symbols.items():
     piopexec.pp_rust_init_size(symbol, rust_name)
   piopexec.pp_rust_define_generator()
+  for pp in protocol._before_exec.preprocessings:
+    piopexec.preprocess(pp.latex_builder, pp.rust_builder)
 
   pp_info = piop.preprocess(piopexec)
   debug("Start executing...")
@@ -88,6 +91,14 @@ def compile(protocol,
   for rust_name, symbol in symbols.items():
     piopexec.verifier_rust_init_size(symbol, rust_name)
   piopexec.verifier_rust_define_generator()
+  for interaction in protocol._before_exec.interactions:
+    if isinstance(interaction, ProverComputes):
+      piopexec.prover_computes(
+            interaction.latex_builder, interaction.rust_builder)
+    elif isinstance(interaction, VerifierComputes):
+      piopexec.verifier_computes(
+            interaction.latex_builder, interaction.rust_builder)
+    
   piop.execute(piopexec, pp_info)
   piopexec.max_degree = piopexec.reference_to_voexec.simplify_max(
       piopexec.max_degree)

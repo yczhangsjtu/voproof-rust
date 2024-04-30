@@ -85,7 +85,6 @@ class POV(VOProtocol):
 
     cc_info = CopyCheck().preprocess(voexec, 3 * C)
 
-    voexec.pp_rust_define(d, "cs.consts.clone()")
     voexec.preprocess_vector(d, Cc)
     voexec.preprocess_output_pk(d)
 
@@ -160,7 +159,6 @@ class POVProverEfficient(VOProtocol):
     C = Cc + Ca + Cm
     cc_info = CopyCheck().preprocess(voexec, 3 * C)
 
-    voexec.pp_rust_define(d, "cs.consts.clone()")
     voexec.preprocess_vector(d, Cc)
     voexec.preprocess_output_pk(d)
 

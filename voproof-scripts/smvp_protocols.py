@@ -130,7 +130,6 @@ class SparseMVPProverEfficient(VOProtocol):
     w = get_named_vector("w").as_preprocessed()
     v = get_named_vector("v").as_preprocessed()
     y = get_named_vector("y").as_preprocessed()
-    voexec.pp_rust_define_generator()
     voexec.pp_rust_define_matrix_vectors(u, w, v, M, "gamma")
     voexec.pp_rust_define_hadamard_vector(y, u, w)
 

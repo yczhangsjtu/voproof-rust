@@ -130,7 +130,8 @@ def analyzePOV():
           .size_hint_larger_than(C, Ca + Cm + 1)
           .size_hint_larger_than(C, 1)
           .size_hint_larger_than(Ca, 1)
-          .size_hint_larger_than(Cm, 1),
+          .size_hint_larger_than(Cm, 1)
+          .before_pp_rust_define(d, "cs.consts.clone()"),
           symbols,
           "voproof_pov")
 
@@ -153,7 +154,8 @@ def analyzePOVProverEfficient():
           .size_hint_larger_than(C, Ca + Cm + 1)
           .size_hint_larger_than(C, 1)
           .size_hint_larger_than(Ca, 1)
-          .size_hint_larger_than(Cm, 1),
+          .size_hint_larger_than(Cm, 1)
+          .before_pp_rust_define(d, "cs.consts.clone()"),
           symbols,
           "voproof_pov_prover_efficient")
 

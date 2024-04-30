@@ -297,6 +297,27 @@ class VOProtocol(object):
     self._preprocess_args = None
     self._execute_args = None
     self._size_hints = None
+    # Used for recording some operations before and after
+    # the main execution
+    self._before_exec = VOProtocolExecution(None)
+    self._after_exec = VOProtocolExecution(None)
+  
+  def __getattribute__(self, name: str):
+    def _exec_before_exec(*args):
+      getattr(self._before_exec, name[7:])(*args)
+      return self
+    
+    def _exec_after_exec(*args):
+      getattr(self._after_exec, name[6:])(*args)
+      return self
+    
+    if name.startswith('before_'):
+      return _exec_before_exec
+    
+    if name.startswith('after_'):
+      return _exec_after_exec
+    
+    return super().__getattribute__(name)
   
   def with_preprocess_args(self, *args):
     self._preprocess_args = args

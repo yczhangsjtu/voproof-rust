@@ -149,7 +149,7 @@ class PublicCoinProtocolExecution(object):
       new_s = Symbol(get_name(name))
     else:
       new_s = Symbol(get_name(name), positive=True)
-    self.verifier_computes_rust(rust_line_define(new_s, s))
+    self.verifier_rust_define(new_s, s)
     return new_s
 
   def invoke_subprotocol(self, name, *args):
