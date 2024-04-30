@@ -1034,13 +1034,9 @@ impl<E: PairingEngine> SNARK<E> for VOProofR1CS {
           one!()*(power(alpha, 7)*(omega - one!()*z)*(gamma*omega - one!()*z)*(-beta*y*power(omega/z, 3*cap_h) + one!()*y_1) - power(alpha, 2)*z*power(omega/z, 3*cap_h + cap_k)*(one!() - power(omega/z, -3*cap_h + cap_s_a + cap_s_b + cap_s_c))*(gamma*omega - one!()*z) - one!()*z*(mu*(one!() - power(omega/z, 3*cap_h))*(gamma*omega - one!()*z) - (omega - one!()*z)*(one!() - power(gamma*omega/z, 3*cap_h))))/((omega - one!()*z)*(gamma*omega - one!()*z)));
         define!(
           c_36,
-          (power(alpha, 6)*power(omega/z, 3*cap_h)*(one!() - z)*(-eval_vector_expression!(
-          z,
-          i,
-          vector_index!(
+          (power(alpha, 6)*power(omega/z, 3*cap_h)*(one!() - z)*(-eval_vector_as_poly!(
           x_vec,
-          i),
-          ell)*power(z, 3*cap_h + 1)*(omega*power(omega/z, ell) - one!()*z) + power(z, 3*cap_h)*(-omega*power(omega/z, ell) + one!()*z)) + power(alpha, 4)*(mu*nu*one!()*y*power(z, cap_k)*(omega - one!()*z)*(one!() - power(z, ell_1)) + power(z, cap_k + 1)*power(omega/z, cap_k)*(one!() - power(z, ell_1))*(one!() - power(omega/z, cap_s_a + cap_s_b + cap_s_c))) + alpha*power(one!(), 2)*z*(one!() - power(z, cap_k))*(one!() - power(omega/z, cap_k)) + power(one!(), 2)*z*(one!() - power(z, 3*cap_h))*(one!() - power(omega/z, 3*cap_h)))/((omega - one!()*z)*(one!() - z)));
+          z)*power(z, 3*cap_h + 1)*(omega*power(omega/z, ell) - one!()*z) + power(z, 3*cap_h)*(-omega*power(omega/z, ell) + one!()*z)) + power(alpha, 4)*(mu*nu*one!()*y*power(z, cap_k)*(omega - one!()*z)*(one!() - power(z, ell_1)) + power(z, cap_k + 1)*power(omega/z, cap_k)*(one!() - power(z, ell_1))*(one!() - power(omega/z, cap_s_a + cap_s_b + cap_s_c))) + alpha*power(one!(), 2)*z*(one!() - power(z, cap_k))*(one!() - power(omega/z, cap_k)) + power(one!(), 2)*z*(one!() - power(z, 3*cap_h))*(one!() - power(omega/z, 3*cap_h)))/((omega - one!()*z)*(one!() - z)));
         define!(
           c_37,
           -alpha*power(one!(), 2)*z*(nu*(one!() - power(omega/z, cap_k))*(gamma*omega - one!()*z) - (omega - one!()*z)*(one!() - power(gamma*omega/z, cap_k)))/((omega - one!()*z)*(gamma*omega - one!()*z)));
@@ -1361,13 +1357,9 @@ impl<E: PairingEngine> SNARK<E> for VOProofR1CS {
           one!()*(power(alpha, 7)*(omega - one!()*z)*(gamma*omega - one!()*z)*(-beta*y*power(omega/z, 3*cap_h) + one!()*y_1) - power(alpha, 2)*z*power(omega/z, 3*cap_h + cap_k)*(one!() - power(omega/z, -3*cap_h + cap_s_a + cap_s_b + cap_s_c))*(gamma*omega - one!()*z) - one!()*z*(mu*(one!() - power(omega/z, 3*cap_h))*(gamma*omega - one!()*z) - (omega - one!()*z)*(one!() - power(gamma*omega/z, 3*cap_h))))/((omega - one!()*z)*(gamma*omega - one!()*z)));
         define!(
           c_36,
-          (power(alpha, 6)*power(omega/z, 3*cap_h)*(one!() - z)*(-eval_vector_expression!(
-          z,
-          i,
-          vector_index!(
+          (power(alpha, 6)*power(omega/z, 3*cap_h)*(one!() - z)*(-eval_vector_as_poly!(
           x_vec,
-          i),
-          ell)*power(z, 3*cap_h + 1)*(omega*power(omega/z, ell) - one!()*z) + power(z, 3*cap_h)*(-omega*power(omega/z, ell) + one!()*z)) + power(alpha, 4)*(mu*nu*one!()*y*power(z, cap_k)*(omega - one!()*z)*(one!() - power(z, ell_1)) + power(z, cap_k + 1)*power(omega/z, cap_k)*(one!() - power(z, ell_1))*(one!() - power(omega/z, cap_s_a + cap_s_b + cap_s_c))) + alpha*power(one!(), 2)*z*(one!() - power(z, cap_k))*(one!() - power(omega/z, cap_k)) + power(one!(), 2)*z*(one!() - power(z, 3*cap_h))*(one!() - power(omega/z, 3*cap_h)))/((omega - one!()*z)*(one!() - z)));
+          z)*power(z, 3*cap_h + 1)*(omega*power(omega/z, ell) - one!()*z) + power(z, 3*cap_h)*(-omega*power(omega/z, ell) + one!()*z)) + power(alpha, 4)*(mu*nu*one!()*y*power(z, cap_k)*(omega - one!()*z)*(one!() - power(z, ell_1)) + power(z, cap_k + 1)*power(omega/z, cap_k)*(one!() - power(z, ell_1))*(one!() - power(omega/z, cap_s_a + cap_s_b + cap_s_c))) + alpha*power(one!(), 2)*z*(one!() - power(z, cap_k))*(one!() - power(omega/z, cap_k)) + power(one!(), 2)*z*(one!() - power(z, 3*cap_h))*(one!() - power(omega/z, 3*cap_h)))/((omega - one!()*z)*(one!() - z)));
         define!(
           c_37,
           -alpha*power(one!(), 2)*z*(nu*(one!() - power(omega/z, cap_k))*(gamma*omega - one!()*z) - (omega - one!()*z)*(one!() - power(gamma*omega/z, cap_k)))/((omega - one!()*z)*(gamma*omega - one!()*z)));

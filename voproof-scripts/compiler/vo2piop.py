@@ -179,6 +179,7 @@ class PIOPFromVOProtocol(object):
     self.vo.preprocess_with_prestored_args(voexec)
     piopexec.debug_mode = self.debug_mode
     piopexec.degree_bound = self.degree_bound
+    voexec._simplify_max_hints = self.vo._size_hints
 
     for pp in voexec.preprocessings:
       piopexec.preprocess(pp.latex_builder, pp.rust_builder)

@@ -1,5 +1,5 @@
 from sympy import Symbol
-from compiler import compile, set_debug_mode
+from compiler import compile, set_debug_mode, generate_size_symbols
 from compiler.symbol.vector import get_named_vector
 from compiler.symbol.names import get_name
 from compiler.builder.rust import RustMacro
@@ -18,50 +18,54 @@ def set_r1cs_parameters():
 
 
 def analyzeR1CS():
-  H, K, Sa, Sb, Sc, ell = set_r1cs_parameters()
-  hints = [(H, K), (Sa, K + 1), (Sa, H + 1),
-           (Sb, K + 1), (Sb, H + 1),
-           (Sc, K + 1), (Sc, H + 1),
-           (Sa + Sb + Sc, 3 * K + 3),
-           (Sa + Sb + Sc, 3 * H + 3),
-           (Sa + Sb + Sc + K, 4 * H + 3),
-           (H, ell + 1)]
-  size_map = [(H, "nrows"), (K, "ncols"),
-              (Sa, "adensity"), (Sb, "bdensity"), (Sc, "cdensity"),
-              (ell, "input_size")]
-  x = get_named_vector("x").can_local_evaluate(lambda z: RustMacro("eval_vector_expression").append([
-      z, Symbol("i"), x.dumpr_at_index(Symbol("i"), None), ell
-  ])).does_not_contribute_to_max_shift()
+  symbols = generate_size_symbols(nrows="H", ncols="K",
+                                  adensity="S_a", bdensity="S_b",
+                                  cdensity="S_c", input_size="ell")
+  H, K, Sa, Sb, Sc, ell = symbols["nrows"], symbols["ncols"], \
+                          symbols["adensity"], symbols["bdensity"], \
+                          symbols["cdensity"], symbols["input_size"]
+  x = get_named_vector("x").can_local_evaluate_dense().does_not_contribute_to_max_shift()
   compile(R1CS()
           .with_preprocess_args(H, K, Sa, Sb, Sc)
-          .with_execute_args(x, get_named_vector("w"), ell),
-          hints,
-          size_map,
-          set_r1cs_parameters,
+          .with_execute_args(x, get_named_vector("w"), ell)
+          .size_hint_larger_than(H, K)
+          .size_hint_larger_than(Sa, K + 1)
+          .size_hint_larger_than(Sa, H + 1)
+          .size_hint_larger_than(Sb, K + 1)
+          .size_hint_larger_than(Sb, H + 1)
+          .size_hint_larger_than(Sc, K + 1)
+          .size_hint_larger_than(Sc, H + 1)
+          .size_hint_larger_than(Sa + Sb + Sc, 3 * K + 3)
+          .size_hint_larger_than(Sa + Sb + Sc, 3 * H + 3)
+          .size_hint_larger_than(Sa + Sb + Sc + K, 4 * H + 3)
+          .size_hint_larger_than(H, ell + 1),
+          symbols,
           "voproof_r1cs")
 
 
 def analyzeR1CSProverEfficient():
-  H, K, Sa, Sb, Sc, ell = set_r1cs_parameters()
-  hints = [(H, K), (Sa, K + 1), (Sa, H + 1),
-           (Sb, K + 1), (Sb, H + 1),
-           (Sc, K + 1), (Sc, H + 1),
-           (Sa + Sb + Sc, 3 * K + 3),
-           (Sa + Sb + Sc, 3 * H + 3),
-           (Sa + Sb + Sc + K, 4 * H + 3),
-           (H, ell + 1)]
-  size_map = [(H, "nrows"), (K, "ncols"),
-              (Sa, "adensity"), (Sb, "bdensity"), (Sc, "cdensity"),
-              (ell, "input_size")]
-  x = get_named_vector("x").can_local_evaluate(lambda z: RustMacro("eval_vector_expression").append([
-      z, Symbol("i"), x.dumpr_at_index(Symbol("i"), None), ell
-  ])).does_not_contribute_to_max_shift()
+  symbols = generate_size_symbols(nrows="H", ncols="K",
+                                  adensity="S_a", bdensity="S_b",
+                                  cdensity="S_c", input_size="ell")
+  H, K, Sa, Sb, Sc, ell = symbols["nrows"], symbols["ncols"], \
+                          symbols["adensity"], symbols["bdensity"], \
+                          symbols["cdensity"], symbols["input_size"]
+  x = get_named_vector("x").can_local_evaluate_dense().does_not_contribute_to_max_shift()
   compile(R1CSProverEfficient()
           .with_preprocess_args(H, K, Sa, Sb, Sc)
-          .with_execute_args(x, get_named_vector("w"), ell),
-          hints,
-          size_map,
-          set_r1cs_parameters,
+          .with_execute_args(x, get_named_vector("w"), ell)
+          .size_hint_larger_than(H, K)
+          .size_hint_larger_than(Sa, K + 1)
+          .size_hint_larger_than(Sa, H + 1)
+          .size_hint_larger_than(Sb, K + 1)
+          .size_hint_larger_than(Sb, H + 1)
+          .size_hint_larger_than(Sc, K + 1)
+          .size_hint_larger_than(Sc, H + 1)
+          .size_hint_larger_than(Sa + Sb + Sc, 3 * K + 3)
+          .size_hint_larger_than(Sa + Sb + Sc, 3 * H + 3)
+          .size_hint_larger_than(Sa + Sb + Sc + K, 4 * H + 3)
+          .size_hint_larger_than(H, ell + 1),
+          symbols,
           "voproof_r1cs_prover_efficient")
 
 
@@ -76,21 +80,28 @@ def set_hpr_parameters():
 
 
 def analyzeHPR():
-  H, K, Sa, Sb, Sc, Sd = set_hpr_parameters()
+  symbols = generate_size_symbols(nrows="H", ncols="K",
+                                  adensity="S_a", bdensity="S_b",
+                                  cdensity="S_c", ddensity="S_d")
+  H, K, Sa, Sb, Sc, Sd = symbols["nrows"], symbols["ncols"], \
+                         symbols["adensity"], symbols["bdensity"], \
+                         symbols["cdensity"], symbols["ddensity"]
 
-  hints = [(Sa, H + 1), (Sa, K + 1), (Sb, H + 1), (Sb, K + 1),
-           (Sc, H + 1), (Sc, K + 1), (H, Sd)]
-  size_map = [(H, "nrows"), (K, "ncols"), (Sa, "adensity"), (Sb, "bdensity"),
-              (Sc, "cdensity"), (Sd, "ddensity")]
-  x = get_named_vector("x").can_local_evaluate(lambda z: RustMacro(
-      "eval_vector_as_poly").append([x, z]))
+  x = get_named_vector("x").can_local_evaluate_dense()
   compile(HPR()
           .with_preprocess_args(H, K, Sa, Sb, Sc, Sd)
-          .with_execute_args(x, get_named_vector("w"), get_named_vector(
-      "w"), get_named_vector("w")),
-          hints,
-          size_map,
-          set_hpr_parameters,
+          .with_execute_args(x,
+                             get_named_vector("w"),
+                             get_named_vector("w"),
+                             get_named_vector("w"))
+          .size_hint_larger_than(Sa, H + 1)
+          .size_hint_larger_than(Sa, K + 1)
+          .size_hint_larger_than(Sb, H + 1)
+          .size_hint_larger_than(Sb, K + 1)
+          .size_hint_larger_than(Sc, H + 1)
+          .size_hint_larger_than(Sc, K + 1)
+          .size_hint_larger_than(H, Sd),
+          symbols,
           "voproof_hpr")
 
 def set_pov_parameters():
@@ -102,41 +113,52 @@ def set_pov_parameters():
 
 
 def analyzePOV():
-  C, Ca, Cm, Cc = set_pov_parameters()
-
-  hints = [(C, Ca + Cm + 1), (C, 1), (Ca, 1), (Cm, 1)]
-  size_map = [(Ca, "nadd"), (Cm, "nmul"), (Cc, "nconsts"), (C, "n")]
-  x = get_named_vector("x").can_local_evaluate(lambda z: RustMacro(
-      "eval_sparse_vector").append([z, "x.instance.0", "x.instance.1"]))
-  x._rust_to_bytes_replacement = "x.instance.0, x.instance.1"
+  symbols = generate_size_symbols(n="C_total",
+                                  nadd="C_a",
+                                  nmul="C_m",
+                                  nconsts="C_c")
+  C, Ca, Cm = symbols["n"], symbols["nadd"], symbols["nmul"]
+  
+  x = get_named_vector("x").can_local_evaluate_sparse(
+    "x.instance.0", "x.instance.1"
+  ).serialize_replacement("x.instance.0, x.instance.1")
   d = get_named_vector("d").as_preprocessed()
   compile(POV()
           .with_preprocess_args(d, C - Ca - Cm, Ca, Cm)
-          .with_execute_args(x, get_named_vector("a"),
-              get_named_vector("b"), get_named_vector("c")),
-          hints,
-          size_map,
-          set_pov_parameters,
+          .with_execute_args(x,
+                             get_named_vector("a"),
+                             get_named_vector("b"),
+                             get_named_vector("c"))
+          .size_hint_larger_than(C, Ca + Cm + 1)
+          .size_hint_larger_than(C, 1)
+          .size_hint_larger_than(Ca, 1)
+          .size_hint_larger_than(Cm, 1),
+          symbols,
           "voproof_pov")
 
 
 def analyzePOVProverEfficient():
-  C, Ca, Cm, Cc = set_pov_parameters()
-
-  hints = [(C, Ca + Cm + 1), (C, 1), (Ca, 1), (Cm, 1)]
-  size_map = [(Ca, "nadd"), (Cm, "nmul"), (Cc, "nconsts"), (C, "n")]
-  x = get_named_vector("x").can_local_evaluate(lambda z:
-    RustMacro("eval_sparse_vector")
-    .append([z, "x.instance.0", "x.instance.1"]))
-  x._rust_to_bytes_replacement = "x.instance.0, x.instance.1"
+  symbols = generate_size_symbols(n="C_total",
+                                  nadd="C_a",
+                                  nmul="C_m",
+                                  nconsts="C_c")
+  C, Ca, Cm = symbols["n"], symbols["nadd"], symbols["nmul"]
+  
+  x = get_named_vector("x").can_local_evaluate_sparse(
+    "x.instance.0", "x.instance.1"
+  ).serialize_replacement("x.instance.0, x.instance.1")
   d = get_named_vector("d").as_preprocessed()
   compile(POVProverEfficient()
           .with_preprocess_args(d, C - Ca - Cm, Ca, Cm)
-          .with_execute_args(x, get_named_vector("a"),
-              get_named_vector("b"), get_named_vector("c")),
-          hints,
-          size_map,
-          set_pov_parameters,
+          .with_execute_args(x,
+                             get_named_vector("a"),
+                             get_named_vector("b"),
+                             get_named_vector("c"))
+          .size_hint_larger_than(C, Ca + Cm + 1)
+          .size_hint_larger_than(C, 1)
+          .size_hint_larger_than(Ca, 1)
+          .size_hint_larger_than(Cm, 1),
+          symbols,
           "voproof_pov_prover_efficient")
 
 

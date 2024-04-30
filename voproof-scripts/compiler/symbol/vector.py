@@ -43,6 +43,20 @@ class NamedVector(_NamedBasic):
     self.local_evaluate = True
     self.hint_computation = hint_computation
     return self
+
+  def can_local_evaluate_dense(self):
+    return self.can_local_evaluate(lambda z: RustMacro(
+      "eval_vector_as_poly"
+    ).append([self, z]))
+    
+  def can_local_evaluate_sparse(self, indices, values):
+    return self.can_local_evaluate(lambda z: RustMacro(
+      "eval_sparse_vector"
+    ).append([z, indices, values]))
+  
+  def serialize_replacement(self, expr):
+    self._rust_to_bytes_replacement = expr
+    return self
   
   def does_not_contribute_to_max_shift(self):
     self._do_not_count_shifts = True

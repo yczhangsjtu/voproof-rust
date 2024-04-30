@@ -25,6 +25,12 @@ def set_dry_run():
   global dry_run
   dry_run = True
 
+def generate_size_symbols(**kwargs):
+  symbols = {}
+  for key, value in kwargs.items():
+    symbols[key] = Symbol(get_name(value), positive=True)
+  return symbols
+  
 def get_minimal_vector_size(protocol, ppargs, execargs, simplify_hints):
   voexec = VOProtocolExecution(Symbol("N"))
   voexec._simplify_max_hints = simplify_hints
@@ -57,14 +63,14 @@ def dump_performance(piopexec, zkSNARK, name):
   print()
 
 def compile(protocol,
-            simplify_hints,
-            size_map,
-            set_parameters,
+            symbols,
             filename=None):
   name = protocol.__class__.__name__
   csname = protocol.name
-  n = protocol.get_minimal_vector_size(simplify_hints)
-  set_parameters()
+  n = protocol.get_minimal_vector_size()
+  # Reinvoke this procedure here to make the name counter correct
+  for symbol in symbols.values():
+      get_name(symbol.name)
 
   debug("Start analyzing %s..." % name)
   piop = PIOPFromVOProtocol(protocol, n, D)
@@ -74,15 +80,14 @@ def compile(protocol,
   piopexec = PIOPExecution()
 
   piop.preprocess(piopexec)
-  piopexec.reference_to_voexec._simplify_max_hints = simplify_hints
   debug("Start executing...")
   piop.execute(piopexec)
   piopexec.max_degree = piopexec.reference_to_voexec.simplify_max(
       piopexec.max_degree)
 
   size_init = rust(piopexec.max_degree)
-  for size, value in size_map:
-    size_init = size_init.replace(rust(size), "(size.{} as i64)".format(value))
+  for var_name, size in symbols.items():
+    size_init = size_init.replace(rust(size), "(size.{} as i64)".format(var_name))
 
   debug("Start compiling to zkSNARK...")
   zkSNARK = ZKSNARKFromPIOPExecKZG(piopexec)

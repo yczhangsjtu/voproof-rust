@@ -291,6 +291,7 @@ class VOProtocol(object):
     self.name = name
     self._preprocess_args = None
     self._execute_args = None
+    self._size_hints = None
   
   def with_preprocess_args(self, *args):
     self._preprocess_args = args
@@ -298,6 +299,13 @@ class VOProtocol(object):
   
   def with_execute_args(self, *args):
     self._execute_args = args
+    return self
+  
+  def size_hint_larger_than(self, larger, smaller):
+    if self._size_hints is None:
+      self._size_hints = []
+    
+    self._size_hints.append((larger, smaller))
     return self
 
   def get_named_vector_for_latex(self, arg, default_name, voexec):
@@ -338,9 +346,9 @@ class VOProtocol(object):
       raise Exception("VOProtocol.execute_with_args called without arguments")
     self.execute(voexec, *self._execute_args)
   
-  def get_minimal_vector_size(self, simplify_hints):
+  def get_minimal_vector_size(self):
     voexec = VOProtocolExecution(Symbol("N"))
-    voexec._simplify_max_hints = simplify_hints
+    voexec._simplify_max_hints = self._size_hints
     self.preprocess_with_prestored_args(voexec)
     self.execute_with_prestored_args(voexec)
     reset_name_counters()
