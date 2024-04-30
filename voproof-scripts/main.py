@@ -1,15 +1,9 @@
-from sympy import Symbol, latex, sympify, Integer, simplify, Max
-from os.path import basename
-from sympy.abc import alpha, beta, gamma, X, D, S
+from sympy import Symbol
 from compiler import compile, set_debug_mode
-from compiler.vo_protocol import VOProtocol, VOProtocolExecution
-from compiler.piop import PIOPExecution
-from compiler.vo2piop import PIOPFromVOProtocol
-from compiler.zksnark import ZKSNARKFromPIOPExecKZG
-from compiler.symbol.vector import get_named_vector, UnitVector
-from compiler.symbol.names import reset_name_counters, get_name
-from compiler.builder.rust import RustBuilder, rust, RustMacro
-from smvp_protocols import R1CS, R1CSProverEfficient, HPR, HPRProverEfficient
+from compiler.symbol.vector import get_named_vector
+from compiler.symbol.names import get_name
+from compiler.builder.rust import RustMacro
+from smvp_protocols import R1CS, R1CSProverEfficient, HPR
 from pov_protocols import POV, POVProverEfficient
 import sys
 
@@ -38,11 +32,9 @@ def analyzeR1CS():
   x = get_named_vector("x").can_local_evaluate(lambda z: RustMacro("eval_vector_expression").append([
       z, Symbol("i"), x.dumpr_at_index(Symbol("i"), None), ell
   ])).does_not_contribute_to_max_shift()
-  ppargs = (H, K, Sa, Sb, Sc)
-  execargs = (x, get_named_vector("w"), ell)
-  compile(R1CS(),
-          ppargs,
-          execargs,
+  compile(R1CS()
+          .with_preprocess_args(H, K, Sa, Sb, Sc)
+          .with_execute_args(x, get_named_vector("w"), ell),
           hints,
           size_map,
           set_r1cs_parameters,
@@ -64,11 +56,9 @@ def analyzeR1CSProverEfficient():
   x = get_named_vector("x").can_local_evaluate(lambda z: RustMacro("eval_vector_expression").append([
       z, Symbol("i"), x.dumpr_at_index(Symbol("i"), None), ell
   ])).does_not_contribute_to_max_shift()
-  ppargs = (H, K, Sa, Sb, Sc)
-  execargs = (x, get_named_vector("w"), ell)
-  compile(R1CSProverEfficient(),
-          ppargs,
-          execargs,
+  compile(R1CSProverEfficient()
+          .with_preprocess_args(H, K, Sa, Sb, Sc)
+          .with_execute_args(x, get_named_vector("w"), ell),
           hints,
           size_map,
           set_r1cs_parameters,
@@ -94,12 +84,10 @@ def analyzeHPR():
               (Sc, "cdensity"), (Sd, "ddensity")]
   x = get_named_vector("x").can_local_evaluate(lambda z: RustMacro(
       "eval_vector_as_poly").append([x, z]))
-  ppargs = (H, K, Sa, Sb, Sc, Sd)
-  execargs = (x, get_named_vector("w"), get_named_vector(
-      "w"), get_named_vector("w"))
-  compile(HPR(),
-          ppargs,
-          execargs,
+  compile(HPR()
+          .with_preprocess_args(H, K, Sa, Sb, Sc, Sd)
+          .with_execute_args(x, get_named_vector("w"), get_named_vector(
+      "w"), get_named_vector("w")),
           hints,
           size_map,
           set_hpr_parameters,
@@ -122,12 +110,10 @@ def analyzePOV():
       "eval_sparse_vector").append([z, "x.instance.0", "x.instance.1"]))
   x._rust_to_bytes_replacement = "x.instance.0, x.instance.1"
   d = get_named_vector("d").as_preprocessed()
-  ppargs = (d, C - Ca - Cm, Ca, Cm)
-  execargs = (x, get_named_vector("a"),
-              get_named_vector("b"), get_named_vector("c"))
-  compile(POV(),
-          ppargs,
-          execargs,
+  compile(POV()
+          .with_preprocess_args(d, C - Ca - Cm, Ca, Cm)
+          .with_execute_args(x, get_named_vector("a"),
+              get_named_vector("b"), get_named_vector("c")),
           hints,
           size_map,
           set_pov_parameters,
@@ -144,12 +130,10 @@ def analyzePOVProverEfficient():
     .append([z, "x.instance.0", "x.instance.1"]))
   x._rust_to_bytes_replacement = "x.instance.0, x.instance.1"
   d = get_named_vector("d").as_preprocessed()
-  ppargs = (d, C - Ca - Cm, Ca, Cm)
-  execargs = (x, get_named_vector("a"),
-              get_named_vector("b"), get_named_vector("c"))
-  compile(POVProverEfficient(),
-          ppargs,
-          execargs,
+  compile(POVProverEfficient()
+          .with_preprocess_args(d, C - Ca - Cm, Ca, Cm)
+          .with_execute_args(x, get_named_vector("a"),
+              get_named_vector("b"), get_named_vector("c")),
           hints,
           size_map,
           set_pov_parameters,

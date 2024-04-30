@@ -57,15 +57,13 @@ def dump_performance(piopexec, zkSNARK, name):
   print()
 
 def compile(protocol,
-            ppargs,
-            execargs,
             simplify_hints,
             size_map,
             set_parameters,
             filename=None):
   name = protocol.__class__.__name__
   csname = protocol.name
-  n = get_minimal_vector_size(protocol, ppargs, execargs, simplify_hints)
+  n = protocol.get_minimal_vector_size(simplify_hints)
   set_parameters()
 
   debug("Start analyzing %s..." % name)
@@ -75,10 +73,10 @@ def compile(protocol,
   debug("Start preprocessing...")
   piopexec = PIOPExecution()
 
-  piop.preprocess(piopexec, *ppargs)
+  piop.preprocess(piopexec)
   piopexec.reference_to_voexec._simplify_max_hints = simplify_hints
   debug("Start executing...")
-  piop.execute(piopexec, *execargs)
+  piop.execute(piopexec)
   piopexec.max_degree = piopexec.reference_to_voexec.simplify_max(
       piopexec.max_degree)
 

@@ -173,10 +173,10 @@ class PIOPFromVOProtocol(object):
     if self.debug_mode:
       print(info)
 
-  def preprocess(self, piopexec, *args):
+  def preprocess(self, piopexec):
     voexec = VOProtocolExecution(self.vector_size)
     vec_to_poly_dict = {}
-    self.vo.preprocess(voexec, *args)
+    self.vo.preprocess_with_prestored_args(voexec)
     piopexec.debug_mode = self.debug_mode
     piopexec.degree_bound = self.degree_bound
 
@@ -758,7 +758,7 @@ class PIOPFromVOProtocol(object):
     piopexec.combine_polynomial(gx, coeff_builders, self.degree_bound)
     piopexec.eval_check(0, z, gx)
 
-  def execute(self, piopexec, *args):
+  def execute(self, piopexec):
     voexec = piopexec.reference_to_voexec
     self.q = Integer(1)
     self.Ftoq = UnevaluatedExpr(F ** self.q)
@@ -767,7 +767,7 @@ class PIOPFromVOProtocol(object):
     piopexec.prover_computes_rust(RustBuilder(samples).end())
 
     self.debug("Executing VO protocol")
-    self.vo.execute(voexec, *args)
+    self.vo.execute_with_prestored_args(voexec)
     piopexec.prover_inputs = voexec.prover_inputs
     piopexec.verifier_inputs = voexec.verifier_inputs
     piopexec.coeff_manager = voexec.coeff_manager

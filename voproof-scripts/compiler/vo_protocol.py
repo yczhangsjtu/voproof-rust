@@ -2,6 +2,7 @@ from .pc_protocol import PublicCoinProtocolExecution
 from .symbol.util import simplify_max_with_hints
 from .symbol.vector import NamedVector, VectorCombination, get_named_vector
 from .symbol.coeff_manager import CoeffManager
+from .symbol.names import reset_name_counters
 from .builder.latex import tex, Itemize, add_paren_if_add, Math
 from .builder.rust import *
 from sympy import Integer, Max
@@ -288,6 +289,16 @@ class VOProtocolExecution(PublicCoinProtocolExecution):
 class VOProtocol(object):
   def __init__(self, name):
     self.name = name
+    self._preprocess_args = None
+    self._execute_args = None
+  
+  def with_preprocess_args(self, *args):
+    self._preprocess_args = args
+    return self
+  
+  def with_execute_args(self, *args):
+    self._execute_args = args
+    return self
 
   def get_named_vector_for_latex(self, arg, default_name, voexec):
     if isinstance(arg, NamedVector):
@@ -314,5 +325,23 @@ class VOProtocol(object):
   def preprocess(self, voexec, *args):
     raise Exception("Should not call VOProtocol.preprocess directly")
 
+  def preprocess_with_prestored_args(self, voexec):
+    if self._preprocess_args is None:
+      raise Exception("VOProtocol.preprocess_with_args called without arguments")
+    self.preprocess(voexec, *self._preprocess_args)
+
   def execute(self, vopexec, *args):
     raise Exception("Should not call VOProtocol.execute directly")
+
+  def execute_with_prestored_args(self, voexec):
+    if self._execute_args is None:
+      raise Exception("VOProtocol.execute_with_args called without arguments")
+    self.execute(voexec, *self._execute_args)
+  
+  def get_minimal_vector_size(self, simplify_hints):
+    voexec = VOProtocolExecution(Symbol("N"))
+    voexec._simplify_max_hints = simplify_hints
+    self.preprocess_with_prestored_args(voexec)
+    self.execute_with_prestored_args(voexec)
+    reset_name_counters()
+    return voexec.vector_size_bound
