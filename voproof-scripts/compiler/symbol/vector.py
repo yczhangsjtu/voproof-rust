@@ -38,6 +38,10 @@ class NamedVector(_NamedBasic):
     ret = NamedVectorPolynomial(self)
     ret._is_preprocessed = self._is_preprocessed
     return ret
+  
+  def can_local_evaluate(self):
+    self.local_evaluate = True
+    return self
 
   def get_poly_with_same_name(self):
     return get_named_polynomial(self.name,
