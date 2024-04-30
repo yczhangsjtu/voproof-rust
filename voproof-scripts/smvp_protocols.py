@@ -47,7 +47,6 @@ class SparseMVP(VOProtocol):
       voexec.rust_vector_size = voexec.verifier_redefine_symbol_rust(n, "n")
     rust_n = voexec.rust_vector_size
     rust_ell = voexec.verifier_redefine_symbol_rust(ell, "ell")
-    voexec.verifier_rust_define_generator()
     voexec.verifier_send_randomness(mu)
     r = get_named_vector("r")
     r._do_not_randomize = True  # r depends only on the random number
@@ -152,7 +151,6 @@ class SparseMVPProverEfficient(VOProtocol):
       voexec.rust_vector_size = voexec.verifier_redefine_symbol_rust(n, "n")
     rust_n = voexec.rust_vector_size
     rust_ell = voexec.verifier_redefine_symbol_rust(ell, "ell")
-    voexec.verifier_rust_define_generator()
     voexec.verifier_send_randomness(mu)
     rmu = get_named_vector("r")
     rmu._do_not_randomize = True  # r depends only on the random number

@@ -1,10 +1,6 @@
 use ark_ec::pairing::Pairing as PairingEngine;
-use ark_ff::{FftField};
-use ark_relations::{
-  r1cs::{
-    ConstraintSynthesizer, ConstraintSystem as ArkR1CS,
-  },
-};
+use ark_ff::FftField;
+use ark_relations::r1cs::{ConstraintSynthesizer, ConstraintSystem as ArkR1CS};
 use ark_serialize::CanonicalSerialize;
 use ark_std::{end_timer, start_timer, Zero};
 use voproof::cs::{circuit::fan_in_two::FanInTwoCircuit, pov::*, r1cs::*, ConstraintSystem};

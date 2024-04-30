@@ -171,7 +171,6 @@ class POVProverEfficient(VOProtocol):
 
     # The expression of n is so complex. Put it in a variable.
     voexec.try_verifier_redefine_vector_size_rust("n", n)
-    rust_n = voexec.rust_vector_size
 
     u = get_named_vector("u")
     v = get_named_vector("v")
