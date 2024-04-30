@@ -107,17 +107,11 @@ class POV(VOProtocol):
     C, Cc, Ca, Cm, d, n = pp_info["C"], pp_info["Cc"], \
       pp_info["Ca"], pp_info["Cm"], pp_info["d"], voexec.vector_size
 
-    voexec.prover_rust_define_sparse_vector(
-        x, "x.instance.0", "x.instance.1", 3 * C)
-    voexec.prover_rust_define_vec(a, "w.witness.0.clone()")
-    voexec.prover_rust_define_vec(b, "w.witness.1.clone()")
-    voexec.prover_rust_define_vec(c, "w.witness.2.clone()")
+    # The expression of n is so complex. Put it in a variable.
     voexec.try_verifier_redefine_vector_size_rust("n", n)
     rust_n = voexec.rust_vector_size
 
     w = get_named_vector("w")
-    voexec.prover_computes_latex(
-        Math(w).assign(a).double_bar(b).double_bar(c))
     voexec.prover_rust_define_concat_vector(w, a, b, c)
     voexec.prover_submit_vector(w, 3 * C)
 
@@ -175,11 +169,6 @@ class POVProverEfficient(VOProtocol):
     C, Cc, Ca, Cm, d, n = pp_info["C"], pp_info["Cc"], \
       pp_info["Ca"], pp_info["Cm"], pp_info["d"], voexec.vector_size
 
-    voexec.prover_rust_define_sparse_vector(
-        x, "x.instance.0", "x.instance.1", 3 * C)
-    voexec.prover_rust_define_vec(a, "w.witness.0.clone()")
-    voexec.prover_rust_define_vec(b, "w.witness.1.clone()")
-    voexec.prover_rust_define_vec(c, "w.witness.2.clone()")
     # The expression of n is so complex. Put it in a variable.
     voexec.try_verifier_redefine_vector_size_rust("n", n)
     rust_n = voexec.rust_vector_size

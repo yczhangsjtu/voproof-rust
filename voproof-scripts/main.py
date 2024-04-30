@@ -140,6 +140,10 @@ def analyzePOV():
           .size_hint_larger_than(Ca, 1)
           .size_hint_larger_than(Cm, 1)
           .before_pp_rust_define(d, "cs.consts.clone()")
+          .before_prover_rust_define_sparse_vector(x, "x.instance.0", "x.instance.1", 3 * C)
+          .before_prover_rust_define_vec(a, "w.witness.0.clone()")
+          .before_prover_rust_define_vec(b, "w.witness.1.clone()")
+          .before_prover_rust_define_vec(c, "w.witness.2.clone()")
           .with_instances(x)
           .with_witnesses(a, b, c),
           symbols,
@@ -166,6 +170,10 @@ def analyzePOVProverEfficient():
           .size_hint_larger_than(Ca, 1)
           .size_hint_larger_than(Cm, 1)
           .before_pp_rust_define(d, "cs.consts.clone()")
+          .before_prover_rust_define_sparse_vector(x, "x.instance.0", "x.instance.1", 3 * C)
+          .before_prover_rust_define_vec(a, "w.witness.0.clone()")
+          .before_prover_rust_define_vec(b, "w.witness.1.clone()")
+          .before_prover_rust_define_vec(c, "w.witness.2.clone()")
           .with_instances(x)
           .with_witnesses(a, b, c),
           symbols,
