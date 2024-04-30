@@ -1,3 +1,60 @@
+from sympy import Symbol, latex, sympify, Integer, simplify, Max
+from os.path import basename
+from sympy.abc import alpha, beta, gamma, X, D, S
+from .vo_protocol import VOProtocol, VOProtocolExecution
+from .piop import PIOPExecution
+from .vo2piop import PIOPFromVOProtocol
+from .zksnark import ZKSNARKFromPIOPExecKZG
+from .symbol.vector import get_named_vector, UnitVector
+from .symbol.names import reset_name_counters, get_name
+from .builder.rust import RustBuilder, rust, RustMacro
+
+debug_mode = False
+debug_check_hadamard_side = False
+dry_run = False
+
+def set_debug_mode():
+    global debug_mode
+    debug_mode = True
+
+def debug(info=""):
+  if debug_mode:
+    print(info)
+
+def set_dry_run():
+  global dry_run
+  dry_run = True
+
+def get_minimal_vector_size(protocol, ppargs, execargs, simplify_hints):
+  voexec = VOProtocolExecution(Symbol("N"))
+  voexec._simplify_max_hints = simplify_hints
+  protocol.preprocess(voexec, *ppargs)
+  protocol.execute(voexec, *execargs)
+  reset_name_counters()
+  return voexec.vector_size_bound
+
+def dump_performance(piopexec, zkSNARK, name):
+  voexec = piopexec.reference_to_voexec
+  print("%s preprocessed polynomials: %d" %
+        (name, len(piopexec.indexer_polynomials)))
+  print("%s online polynomials: %d" % (name, len(piopexec.prover_polynomials)))
+  n_distinct = len(piopexec.distinct_points)
+  print("%s distinct points: %d" % (name, n_distinct))
+  n_evals = len(piopexec.eval_queries) + len(piopexec.eval_checks)
+  print("%s eval queries: %d" % (name, n_evals))
+  print("%s max degree: %s" % (name, latex(piopexec.max_degree)))
+  print("%s minimal n: %s" % (name, latex(voexec.vector_size_bound)))
+  n_field_elements = len(
+      [p for p in zkSNARK.proof if latex(p).startswith("y")])
+  print("%s proof size: %d G + %d F" %
+        (name, len(zkSNARK.proof) - n_field_elements, n_field_elements))
+  c_g_exps = sum([len(poly_combine.coeff_builders)
+                 for poly_combine in piopexec.poly_combines])
+  v_g_exps = n_evals + 2 * n_distinct - 2 + c_g_exps
+  print("%s verifier G-exps: %d" % (name, v_g_exps))
+  p_g_exps = c_g_exps + piopexec.max_degree * 4 + voexec.vector_size_sum
+  print("%s prover G-exps: %s" % (name, latex(p_g_exps)))
+  print()
 
 def compile(protocol,
             ppargs,
@@ -34,7 +91,7 @@ def compile(protocol,
   debug()
   dump_performance(piopexec, zkSNARK, name)
 
-  if filename is not None:
+  if not dry_run and filename is not None:
     with open("../voproof/src/snarks/template.rs") as template:
       temp = template.readlines()
     mark_content_map = [("__NAME__", name),

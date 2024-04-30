@@ -39,8 +39,17 @@ class NamedVector(_NamedBasic):
     ret._is_preprocessed = self._is_preprocessed
     return ret
   
-  def can_local_evaluate(self):
+  def can_local_evaluate(self, hint_computation):
     self.local_evaluate = True
+    self.hint_computation = hint_computation
+    return self
+  
+  def does_not_contribute_to_max_shift(self):
+    self._do_not_count_shifts = True
+    return self
+  
+  def as_preprocessed(self):
+    self._is_preprocessed = True
     return self
 
   def get_poly_with_same_name(self):

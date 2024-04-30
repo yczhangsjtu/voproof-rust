@@ -200,9 +200,22 @@ class VOProtocolExecution(PublicCoinProtocolExecution):
     self.vector_size_bound = Integer(0)
     self.vector_size_sum = Integer(0)
     self.coeff_manager = CoeffManager()
+    # Hints provided by the user to simplify the expression
+    # of the maximal vector size involved in the protocol.
     self._simplify_max_hints = None
 
   def simplify_max(self, expr):
+    """
+# There are many vectors involved in the VO protocol, with
+# different sizes. To accomodate for the largest vector,
+# our compiler will analyze the maximum size of the vectors
+# symbolically. However, the resulting expression will be
+# very complex, since the compiler does not know the relations
+# between the symbols. The expression can be simplified if the
+# user could provide some hints, telling the compiler which
+# symbols represent integers that are guaranteed to be larger
+# than others.
+  """
     if self._simplify_max_hints is not None:
       return simplify_max_with_hints(expr, self._simplify_max_hints)
     return expr

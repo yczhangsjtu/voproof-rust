@@ -33,8 +33,18 @@ def expand_max(expr):
 
   raise Exception("Unexpected type: %s" % type(expr))
 
-
 def simplify_max(expr, larger=None, smaller=None):
+  """
+# There are many vectors involved in the VO protocol, with
+# different sizes. To accomodate for the largest vector,
+# our compiler will analyze the maximum size of the vectors
+# symbolically. However, the resulting expression will be
+# very complex, since the compiler does not know the relations
+# between the symbols. The expression can be simplified if the
+# user could provide some hints, telling the compiler which
+# symbols represent integers that are guaranteed to be larger
+# than others.
+  """
   # print("Before: %s" % latex(expr))
   # print("Using: %s > %s" % (latex(larger), latex(smaller)))
   if larger is not None:
@@ -56,6 +66,17 @@ def simplify_max(expr, larger=None, smaller=None):
 
 
 def simplify_max_with_hints(expr, hints):
+  """
+# There are many vectors involved in the VO protocol, with
+# different sizes. To accomodate for the largest vector,
+# our compiler will analyze the maximum size of the vectors
+# symbolically. However, the resulting expression will be
+# very complex, since the compiler does not know the relations
+# between the symbols. The expression can be simplified if the
+# user could provide some hints, telling the compiler which
+# symbols represent integers that are guaranteed to be larger
+# than others.
+  """
   for larger, smaller in hints:
     expr = simplify_max(expr, larger, smaller)
   return expr
