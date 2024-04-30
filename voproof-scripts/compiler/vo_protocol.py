@@ -226,11 +226,11 @@ class VOProtocolExecution(PublicCoinProtocolExecution):
       self.indexer_vectors.add_vector(vector, size)
     else:
       self.indexer_vectors = IndexerSubmitVectors(vector, size)
+    self.preprocess_output_pk(vector)
 
   def preprocess_named_vector_as_pk(self, name, size):
     v = get_named_vector(name).as_preprocessed()
     self.preprocess_vector(v, size)
-    self.preprocess_output_pk(v)
     return v
   def run_subprotocol_indexer(self, protocol, *args):
     protocol.preprocess(self, *args)
@@ -297,6 +297,8 @@ class VOProtocol(object):
     self._preprocess_args = None
     self._execute_args = None
     self._size_hints = None
+    self._instance_vectors = None
+    self._witness_vectors = None
     # Used for recording some operations before and after
     # the main execution
     self._before_exec = VOProtocolExecution(None)
@@ -332,6 +334,18 @@ class VOProtocol(object):
       self._size_hints = []
     
     self._size_hints.append((larger, smaller))
+    return self
+  
+  def with_instances(self, *args):
+    if self._instance_vectors is None:
+      self._instance_vectors = []
+    self._instance_vectors.extend(args)
+    return self
+  
+  def with_witnesses(self, *args):
+    if self._witness_vectors is None:
+      self._witness_vectors = []
+    self._witness_vectors.extend(args)
     return self
 
   def get_named_vector_for_latex(self, arg, default_name, voexec):

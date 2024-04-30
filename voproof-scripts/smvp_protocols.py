@@ -27,10 +27,6 @@ class SparseMVP(VOProtocol):
     voexec.preprocess_vector(w, ell)
     voexec.preprocess_vector(v, ell)
     voexec.preprocess_vector(y, ell)
-    voexec.preprocess_output_pk(u)
-    voexec.preprocess_output_pk(w)
-    voexec.preprocess_output_pk(v)
-    voexec.preprocess_output_pk(y)
     
     return {
         "u": u,
@@ -125,7 +121,7 @@ class SparseMVPProverEfficient(VOProtocol):
   def __init__(self):
     super().__init__("SparseMVP")
 
-  def preprocess(self, voexec, H, K, ell, M):
+  def preprocess(self, voexec: VOProtocolExecution, H, K, ell, M):
     u = get_named_vector("u").as_preprocessed()
     w = get_named_vector("w").as_preprocessed()
     v = get_named_vector("v").as_preprocessed()
@@ -137,10 +133,6 @@ class SparseMVPProverEfficient(VOProtocol):
     voexec.preprocess_vector(w, ell)
     voexec.preprocess_vector(v, ell)
     voexec.preprocess_vector(y, ell)
-    voexec.preprocess_output_pk(u)
-    voexec.preprocess_output_pk(w)
-    voexec.preprocess_output_pk(v)
-    voexec.preprocess_output_pk(y)
     return {
         "u": u,
         "v": v,
@@ -270,9 +262,6 @@ class R1CS(VOProtocol):
     }
 
   def execute(self, voexec, pp_info, x, w, ell):
-    voexec.input_instance(x)
-    voexec.input_witness(w)
-
     H, K, sa, sb, sc, n = pp_info["H"], pp_info["K"], \
         pp_info["sa"], pp_info["sb"], pp_info["sc"], voexec.vector_size
     M = pp_info["M"]
@@ -336,9 +325,6 @@ class R1CSProverEfficient(VOProtocol):
     }
 
   def execute(self, voexec: VOProtocolExecution, pp_info, x, w, ell):
-    voexec.input_instance(x)
-    voexec.input_witness(w)
-
     H, K, sa, sb, sc, n = pp_info["H"], pp_info["K"], \
         pp_info["sa"], pp_info["sb"], pp_info["sc"], voexec.vector_size
     M = pp_info["M"]
@@ -370,7 +356,6 @@ class HPR(VOProtocol):
 
   def preprocess(self, voexec, H, K, sa, sb, sc, sd):
     M = Matrix("M").as_preprocessed()
-    d = get_named_vector("d")
 
     voexec.pp_rust_concat_matrix_horizontally(
         M, K,
@@ -391,18 +376,12 @@ class HPR(VOProtocol):
         "sb": sb,
         "sc": sc,
         "sd": sd,
-        "d": d,
         "smvp_info": smvp_info,
     }
 
   def execute(self, voexec, pp_info, x, w1, w2, w3):
-    voexec.input_instance(x)
-    voexec.input_witness(w1)
-    voexec.input_witness(w2)
-    voexec.input_witness(w3)
-
     H, K, n = pp_info["H"], pp_info["K"], voexec.vector_size
-
+    
     voexec.verifier_rust_define_vec(x, "x.instance.clone()")
     voexec.prover_rust_define_vec(w1, "w.witness.0.clone()")
     voexec.prover_rust_define_vec(w2, "w.witness.1.clone()")

@@ -80,13 +80,12 @@ class POV(VOProtocol):
   def __init__(self):
     super(POV, self).__init__("POV")
 
-  def preprocess(self, voexec, d, Cc, Ca, Cm):
+  def preprocess(self, voexec: VOProtocolExecution, d, Cc, Ca, Cm):
     C = Cc + Ca + Cm
 
     cc_info = CopyCheck().preprocess(voexec, 3 * C)
 
     voexec.preprocess_vector(d, Cc)
-    voexec.preprocess_output_pk(d)
 
     """
     The vector d will never be shifted outside the n-window
@@ -104,10 +103,6 @@ class POV(VOProtocol):
     }
 
   def execute(self, voexec: VOProtocolExecution, pp_info, x, a, b, c):
-    voexec.input_instance(x)
-    voexec.input_witness(a)
-    voexec.input_witness(b)
-    voexec.input_witness(c)
 
     C, Cc, Ca, Cm, d, n = pp_info["C"], pp_info["Cc"], \
       pp_info["Ca"], pp_info["Cm"], pp_info["d"], voexec.vector_size
@@ -160,7 +155,6 @@ class POVProverEfficient(VOProtocol):
     cc_info = CopyCheck().preprocess(voexec, 3 * C)
 
     voexec.preprocess_vector(d, Cc)
-    voexec.preprocess_output_pk(d)
 
     """
     The vector d will never be shifted outside the n-window
@@ -177,10 +171,6 @@ class POVProverEfficient(VOProtocol):
     }
 
   def execute(self, voexec, pp_info, x, a, b, c):
-    voexec.input_instance(x)
-    voexec.input_witness(a)
-    voexec.input_witness(b)
-    voexec.input_witness(c)
 
     C, Cc, Ca, Cm, d, n = pp_info["C"], pp_info["Cc"], \
       pp_info["Ca"], pp_info["Cm"], pp_info["d"], voexec.vector_size

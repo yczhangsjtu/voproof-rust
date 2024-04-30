@@ -91,6 +91,7 @@ def compile(protocol: VOProtocol,
   for rust_name, symbol in symbols.items():
     piopexec.verifier_rust_init_size(symbol, rust_name)
   piopexec.verifier_rust_define_generator()
+  
   for interaction in protocol._before_exec.interactions:
     if isinstance(interaction, ProverComputes):
       piopexec.prover_computes(

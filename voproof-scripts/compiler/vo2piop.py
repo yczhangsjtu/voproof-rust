@@ -769,6 +769,12 @@ class PIOPFromVOProtocol(object):
     piopexec.prover_computes_rust(RustBuilder(samples).end())
 
     self.debug("Executing VO protocol")
+    if self.vo._instance_vectors is not None:
+      for v in self.vo._instance_vectors:
+        voexec.input_instance(v)
+      for w in self.vo._witness_vectors:
+        voexec.input_witness(w)
+        
     self.vo.execute_with_prestored_args(voexec, pp_info)
     piopexec.prover_inputs = voexec.prover_inputs
     piopexec.verifier_inputs = voexec.verifier_inputs

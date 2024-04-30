@@ -25,9 +25,10 @@ def analyzeR1CS():
                           symbols["adensity"], symbols["bdensity"], \
                           symbols["cdensity"], symbols["input_size"]
   x = get_named_vector("x").can_local_evaluate_dense().does_not_contribute_to_max_shift()
+  w = get_named_vector("w")
   compile(R1CS()
           .with_preprocess_args(H, K, Sa, Sb, Sc)
-          .with_execute_args(x, get_named_vector("w"), ell)
+          .with_execute_args(x, w, ell)
           .size_hint_larger_than(H, K)
           .size_hint_larger_than(Sa, K + 1)
           .size_hint_larger_than(Sa, H + 1)
@@ -38,7 +39,9 @@ def analyzeR1CS():
           .size_hint_larger_than(Sa + Sb + Sc, 3 * K + 3)
           .size_hint_larger_than(Sa + Sb + Sc, 3 * H + 3)
           .size_hint_larger_than(Sa + Sb + Sc + K, 4 * H + 3)
-          .size_hint_larger_than(H, ell + 1),
+          .size_hint_larger_than(H, ell + 1)
+          .with_instances(x)
+          .with_witnesses(w),
           symbols,
           "voproof_r1cs")
 
@@ -51,9 +54,10 @@ def analyzeR1CSProverEfficient():
                           symbols["adensity"], symbols["bdensity"], \
                           symbols["cdensity"], symbols["input_size"]
   x = get_named_vector("x").can_local_evaluate_dense().does_not_contribute_to_max_shift()
+  w = get_named_vector("w")
   compile(R1CSProverEfficient()
           .with_preprocess_args(H, K, Sa, Sb, Sc)
-          .with_execute_args(x, get_named_vector("w"), ell)
+          .with_execute_args(x, w, ell)
           .size_hint_larger_than(H, K)
           .size_hint_larger_than(Sa, K + 1)
           .size_hint_larger_than(Sa, H + 1)
@@ -64,7 +68,9 @@ def analyzeR1CSProverEfficient():
           .size_hint_larger_than(Sa + Sb + Sc, 3 * K + 3)
           .size_hint_larger_than(Sa + Sb + Sc, 3 * H + 3)
           .size_hint_larger_than(Sa + Sb + Sc + K, 4 * H + 3)
-          .size_hint_larger_than(H, ell + 1),
+          .size_hint_larger_than(H, ell + 1)
+          .with_instances(x)
+          .with_witnesses(w),
           symbols,
           "voproof_r1cs_prover_efficient")
 
@@ -88,19 +94,21 @@ def analyzeHPR():
                          symbols["cdensity"], symbols["ddensity"]
 
   x = get_named_vector("x").can_local_evaluate_dense()
+  w1 = get_named_vector("w")
+  w2 = get_named_vector("w")
+  w3 = get_named_vector("w")
   compile(HPR()
           .with_preprocess_args(H, K, Sa, Sb, Sc, Sd)
-          .with_execute_args(x,
-                             get_named_vector("w"),
-                             get_named_vector("w"),
-                             get_named_vector("w"))
+          .with_execute_args(x, w1, w2, w3)
           .size_hint_larger_than(Sa, H + 1)
           .size_hint_larger_than(Sa, K + 1)
           .size_hint_larger_than(Sb, H + 1)
           .size_hint_larger_than(Sb, K + 1)
           .size_hint_larger_than(Sc, H + 1)
           .size_hint_larger_than(Sc, K + 1)
-          .size_hint_larger_than(H, Sd),
+          .size_hint_larger_than(H, Sd)
+          .with_instances(x)
+          .with_witnesses(w1, w2, w3),
           symbols,
           "voproof_hpr")
 
@@ -121,17 +129,19 @@ def analyzePOV():
   
   x = get_named_vector("x").as_sparse_instance()
   d = get_named_vector("d").as_preprocessed()
+  a = get_named_vector("a")
+  b = get_named_vector("b")
+  c = get_named_vector("c")
   compile(POV()
           .with_preprocess_args(d, C - Ca - Cm, Ca, Cm)
-          .with_execute_args(x,
-                             get_named_vector("a"),
-                             get_named_vector("b"),
-                             get_named_vector("c"))
+          .with_execute_args(x, a, b, c)
           .size_hint_larger_than(C, Ca + Cm + 1)
           .size_hint_larger_than(C, 1)
           .size_hint_larger_than(Ca, 1)
           .size_hint_larger_than(Cm, 1)
-          .before_pp_rust_define(d, "cs.consts.clone()"),
+          .before_pp_rust_define(d, "cs.consts.clone()")
+          .with_instances(x)
+          .with_witnesses(a, b, c),
           symbols,
           "voproof_pov")
 
@@ -145,17 +155,19 @@ def analyzePOVProverEfficient():
   
   x = get_named_vector("x").as_sparse_instance()
   d = get_named_vector("d").as_preprocessed()
+  a = get_named_vector("a")
+  b = get_named_vector("b")
+  c = get_named_vector("c")
   compile(POVProverEfficient()
           .with_preprocess_args(d, C - Ca - Cm, Ca, Cm)
-          .with_execute_args(x,
-                             get_named_vector("a"),
-                             get_named_vector("b"),
-                             get_named_vector("c"))
+          .with_execute_args(x, a, b, c)
           .size_hint_larger_than(C, Ca + Cm + 1)
           .size_hint_larger_than(C, 1)
           .size_hint_larger_than(Ca, 1)
           .size_hint_larger_than(Cm, 1)
-          .before_pp_rust_define(d, "cs.consts.clone()"),
+          .before_pp_rust_define(d, "cs.consts.clone()")
+          .with_instances(x)
+          .with_witnesses(a, b, c),
           symbols,
           "voproof_pov_prover_efficient")
 
