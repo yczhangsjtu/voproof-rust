@@ -78,10 +78,17 @@ def compile(protocol,
   piop.debug_check_hadamard_side = debug_check_hadamard_side
   debug("Start preprocessing...")
   piopexec = PIOPExecution()
+  for rust_name, symbol in symbols.items():
+    piopexec.pp_rust_init_size(symbol, rust_name)
+  piopexec.pp_rust_define_generator()
 
-  piop.preprocess(piopexec)
+  pp_info = piop.preprocess(piopexec)
   debug("Start executing...")
-  piop.execute(piopexec)
+  
+  for rust_name, symbol in symbols.items():
+    piopexec.verifier_rust_init_size(symbol, rust_name)
+  piopexec.verifier_rust_define_generator()
+  piop.execute(piopexec, pp_info)
   piopexec.max_degree = piopexec.reference_to_voexec.simplify_max(
       piopexec.max_degree)
 

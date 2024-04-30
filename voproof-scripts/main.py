@@ -119,9 +119,7 @@ def analyzePOV():
                                   nconsts="C_c")
   C, Ca, Cm = symbols["n"], symbols["nadd"], symbols["nmul"]
   
-  x = get_named_vector("x").can_local_evaluate_sparse(
-    "x.instance.0", "x.instance.1"
-  ).serialize_replacement("x.instance.0, x.instance.1")
+  x = get_named_vector("x").as_sparse_instance()
   d = get_named_vector("d").as_preprocessed()
   compile(POV()
           .with_preprocess_args(d, C - Ca - Cm, Ca, Cm)
@@ -144,9 +142,7 @@ def analyzePOVProverEfficient():
                                   nconsts="C_c")
   C, Ca, Cm = symbols["n"], symbols["nadd"], symbols["nmul"]
   
-  x = get_named_vector("x").can_local_evaluate_sparse(
-    "x.instance.0", "x.instance.1"
-  ).serialize_replacement("x.instance.0, x.instance.1")
+  x = get_named_vector("x").as_sparse_instance()
   d = get_named_vector("d").as_preprocessed()
   compile(POVProverEfficient()
           .with_preprocess_args(d, C - Ca - Cm, Ca, Cm)

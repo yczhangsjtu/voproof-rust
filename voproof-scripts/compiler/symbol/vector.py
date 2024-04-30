@@ -54,6 +54,11 @@ class NamedVector(_NamedBasic):
       "eval_sparse_vector"
     ).append([z, indices, values]))
   
+  def as_sparse_instance(self):
+    return self.can_local_evaluate_sparse(
+      "x.instance.0", "x.instance.1"
+    ).serialize_replacement("x.instance.0, x.instance.1")
+  
   def serialize_replacement(self, expr):
     self._rust_to_bytes_replacement = expr
     return self

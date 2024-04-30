@@ -1,6 +1,6 @@
 from .pc_protocol import ProverComputes, VerifierComputes, \
     VerifierSendRandomnesses
-from .vo_protocol import VOProtocolExecution, ProverSubmitVectors, VOQuerySide
+from .vo_protocol import VOProtocol, VOProtocolExecution, ProverSubmitVectors, VOQuerySide
 from .piop import CombinationCoeffBuilder
 from .symbol.vector import NamedVector, PowerVector, UnitVector, \
     get_named_vector, VectorCombination, convolution, NamedVectorPairCombination, \
@@ -163,7 +163,7 @@ class ExtendedHadamard(object):
 
 
 class PIOPFromVOProtocol(object):
-  def __init__(self, vo, vector_size, degree_bound):
+  def __init__(self, vo: VOProtocol, vector_size, degree_bound):
     self.vo = vo
     self.vector_size = vector_size
     self.degree_bound = degree_bound
@@ -176,7 +176,7 @@ class PIOPFromVOProtocol(object):
   def preprocess(self, piopexec):
     voexec = VOProtocolExecution(self.vector_size)
     vec_to_poly_dict = {}
-    self.vo.preprocess_with_prestored_args(voexec)
+    pp_info = self.vo.preprocess_with_prestored_args(voexec)
     piopexec.debug_mode = self.debug_mode
     piopexec.degree_bound = self.degree_bound
     voexec._simplify_max_hints = self.vo._size_hints
@@ -196,6 +196,7 @@ class PIOPFromVOProtocol(object):
     piopexec.indexer_output_vk = voexec.indexer_output_vk
     piopexec.reference_to_voexec = voexec
     piopexec.vec_to_poly_dict = vec_to_poly_dict
+    return pp_info
 
   def _generate_new_randomizer(self, samples, k):
     randomizer = get_named_vector("delta")
@@ -759,7 +760,7 @@ class PIOPFromVOProtocol(object):
     piopexec.combine_polynomial(gx, coeff_builders, self.degree_bound)
     piopexec.eval_check(0, z, gx)
 
-  def execute(self, piopexec):
+  def execute(self, piopexec, pp_info):
     voexec = piopexec.reference_to_voexec
     self.q = Integer(1)
     self.Ftoq = UnevaluatedExpr(F ** self.q)
@@ -768,7 +769,7 @@ class PIOPFromVOProtocol(object):
     piopexec.prover_computes_rust(RustBuilder(samples).end())
 
     self.debug("Executing VO protocol")
-    self.vo.execute_with_prestored_args(voexec)
+    self.vo.execute_with_prestored_args(voexec, pp_info)
     piopexec.prover_inputs = voexec.prover_inputs
     piopexec.verifier_inputs = voexec.verifier_inputs
     piopexec.coeff_manager = voexec.coeff_manager

@@ -227,6 +227,11 @@ class VOProtocolExecution(PublicCoinProtocolExecution):
     else:
       self.indexer_vectors = IndexerSubmitVectors(vector, size)
 
+  def preprocess_named_vector_as_pk(self, name, size):
+    v = get_named_vector(name).as_preprocessed()
+    self.preprocess_vector(v, size)
+    self.preprocess_output_pk(v)
+    return v
   def run_subprotocol_indexer(self, protocol, *args):
     protocol.preprocess(self, *args)
 
@@ -262,8 +267,8 @@ class VOProtocolExecution(PublicCoinProtocolExecution):
   def inner_product_query(self, a, b, c=None, d=None):
     self.inner_products.append(InnerProductQuery(a, b, c, d))
 
-  def run_subprotocol(self, protocol, *args):
-    protocol.execute(self, *args)
+  def run_subprotocol(self, protocol, pp_info, *args):
+    protocol.execute(self, pp_info, *args)
 
   def dumps(self):
     ret = Algorithm(self.name)
@@ -330,26 +335,26 @@ class VOProtocol(object):
                         type(arg)
                     ))
 
-  def preprocess(self, voexec, *args):
+  def preprocess(self, voexec, pp_info, *args):
     raise Exception("Should not call VOProtocol.preprocess directly")
 
   def preprocess_with_prestored_args(self, voexec):
     if self._preprocess_args is None:
       raise Exception("VOProtocol.preprocess_with_args called without arguments")
-    self.preprocess(voexec, *self._preprocess_args)
+    return self.preprocess(voexec, *self._preprocess_args)
 
-  def execute(self, vopexec, *args):
+  def execute(self, voexec, pp_info, *args):
     raise Exception("Should not call VOProtocol.execute directly")
 
-  def execute_with_prestored_args(self, voexec):
+  def execute_with_prestored_args(self, voexec, pp_info):
     if self._execute_args is None:
       raise Exception("VOProtocol.execute_with_args called without arguments")
-    self.execute(voexec, *self._execute_args)
+    self.execute(voexec, pp_info, *self._execute_args)
   
   def get_minimal_vector_size(self):
     voexec = VOProtocolExecution(Symbol("N"))
     voexec._simplify_max_hints = self._size_hints
-    self.preprocess_with_prestored_args(voexec)
-    self.execute_with_prestored_args(voexec)
+    pp_info = self.preprocess_with_prestored_args(voexec)
+    self.execute_with_prestored_args(voexec, pp_info)
     reset_name_counters()
     return voexec.vector_size_bound
