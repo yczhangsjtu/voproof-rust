@@ -20,10 +20,7 @@ However, $a$ and $b$ may take any initial values other than 1. For clarity, we c
 Note that SNARKs are convenient to build for arithmetic relations, i.e., NP relations involving arithmetic operations over a particular finite field $\mathbb{F}$ that is decided by the concrete SNARK implementation. For most SNARKs, and for our example here, the finite field is a prime field $\mathbb{F}_p$ for a large prime $p$. For convenience, we build the Fibonacci sequence over this finite field $\mathbb{F}$. Therefore, we don't need to worry that the sequence increases exponentially as $N$ grows.
 
 Then we define the following NP relation as the target relation to build SNARK for:
-
-$$
-\mathcal{R}_N=\left\{((a,b,c),\perp)|\mathsf{Fib}_N(a,b)=c\right\}
-$$
+$$\mathcal{R}_N=\left\{((a,b,c),\perp)|\mathsf{Fib}_N(a,b)=c\right\}$$
 Here $N$ is the parameter of this relation, $(a,b,c)$ is an instance of this relation, and the witness is empty.
 
 ## Arithmetization
@@ -33,9 +30,7 @@ The first step of building a SNARK is arithmetization. This step does not have a
 In this example, we write down the intermediate values in computing $\mathsf{Fib}_N$ as: $w_1=a+b,w_2=b+w_0$, then for every $i$ from $3$ to $N$, $w_i=w_{i-2}+w_{i-1}$.
 
 We collect all these intermediate values into a vector $\vec{w}$. Now it is obvious that the following NP language contains the same instances as the original NP language:
-$$
-\mathcal{R}_N=\left\{((a,b,c),\vec{w}\in\mathbb{F}^N)\left|\begin{array}{l}\vec{w}[1]=a+b,\vec{w}[2]=a+2b,\vec{w}[N]=c\\\vec{w}[i]=\vec{w}[i-1]+\vec{w}[i-2]\quad\forall 2< i\leq N\end{array}\right.\right\}
-$$
+$$\mathcal{R}_N=\left\{((a,b,c),\vec{w}\in\mathbb{F}^N)\left|\begin{array}{l}\vec{w}[1]=a+b,\vec{w}[2]=a+2b,\vec{w}[N]=c\\\vec{w}[i]=\vec{w}[i-1]+\vec{w}[i-2]\quad\forall 2< i\leq N\end{array}\right.\right\}$$
 This relation is shallower than the original relation in the sense that the condition now becomes a collection of simple equations which can be described by shallow circuits.
 
 Let's define this relation using code.
@@ -132,9 +127,7 @@ $$
 Note that, except $\vec{w}$, all the other vectors involved in this query can be submitted by the verifier, as they are either sparse or all-one.
 
 For the last condition, we need to use the vector shifting operation. Note that it is equivalent to the following query:
-$$
-(\vec{w}^{\to 1}+\vec{w}^{\to 2}-\vec{w})\circ(0,0,1,\cdots,1)=(0,\cdots,0)\circ(0,\cdots,0)
-$$
+$$(\vec{w}^{\to 1}+\vec{w}^{\to 2}-\vec{w})\circ(0,0,1,\cdots,1)=(0,\cdots,0)\circ(0,\cdots,0)$$
 The "$\to k$" on the superscript means the vector is right shifted by $k$ positions. The second vector here contains two zeros followed by $N-2$ ones.
 
 Now the protocol is finished. Note that the VO protocol is very simple: the prover submits one vector, and the verifier applies two Hadamard queries to check that this vector satisfies certain relations.
@@ -286,13 +279,9 @@ for i from 1 to N
 ```
 
 We redefine the relation to include $\vec{t}$ in its _index_. Now this relation becomes an indexed relation.
-$$
-\mathcal{R}_N=\left\{(\vec{t},(a,b,c),\perp)|\mathsf{Fib}_{N,\vec{t}}(a,b)=c\right\}
-$$
+$$\mathcal{R}_N=\left\{(\vec{t},(a,b,c),\perp)|\mathsf{Fib}_{N,\vec{t}}(a,b)=c\right\}$$
 Similarly, we can arithmetize this extended relation as
-$$
-\mathcal{R}_N=\left\{(\vec{t},(a,b,c),\vec{w}\in\mathbb{F}^N)\left|\begin{array}{l}\vec{w}[1]=a+b\cdot\vec{t}[1],\vec{w}[2]=b+\vec{w}[1]\cdot\vec{t}[2],\vec{w}[N]=c\\\vec{w}[i]=\vec{w}[i-1]+\vec{w}[i-2]\cdot\vec{t}[i]\quad\forall 2< i\leq N\end{array}\right.\right\}
-$$
+$$\mathcal{R}_N=\left\{(\vec{t},(a,b,c),\vec{w}\in\mathbb{F}^N)\left|\begin{array}{l}\vec{w}[1]=a+b\cdot\vec{t}[1],\vec{w}[2]=b+\vec{w}[1]\cdot\vec{t}[2],\vec{w}[N]=c\\\vec{w}[i]=\vec{w}[i-1]+\vec{w}[i-2]\cdot\vec{t}[i]\quad\forall 2< i\leq N\end{array}\right.\right\}$$
 
 The constraint system is updated as follows.
 
