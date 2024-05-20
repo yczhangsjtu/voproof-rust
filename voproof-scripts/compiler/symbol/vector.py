@@ -1100,7 +1100,7 @@ class NamedVectorPairCombination(CoeffMap):
         v = get_named_vector("v")
         to_shift = Symbol(get_name("shiftlength"))
         ret.append(rust_define_vector_reverse_omega_shift(
-            v, vector_pair.u, omega, to_shift
+            v, rust_pk(vector_pair.u), omega, to_shift
         )).end()
         named_vector_structure_pairs.append((v, coeff.shift(-to_shift)))
       elif vector_pair.v is not None:

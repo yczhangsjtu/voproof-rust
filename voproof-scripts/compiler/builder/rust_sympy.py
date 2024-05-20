@@ -520,7 +520,21 @@ class RustCodePrinter(CodePrinter):
 
 
 class RustCodePrinterToField(RustCodePrinter):
+    def __init__(self, settings={}):
+        super().__init__(settings)
+        self.use_to_field = True
+    
+    def _print_without_field(self, expr):
+        tmp_store = self.use_to_field
+        self.use_to_field = False
+        result = super()._print(expr)
+        self.use_to_field = tmp_store
+        return result
+
     def _print_Integer(self, expr, _type=False):
+        if not self.use_to_field:
+            return super()._print_Integer(expr, _type)
+        
         if expr == 0:
             return "zero!()"
         if expr == 1:
@@ -530,6 +544,15 @@ class RustCodePrinterToField(RustCodePrinter):
         ret = super()._print_Integer(expr, _type)
         return "scalar_to_field!(%s)" % ret
 
+    def _print_Pow(self, expr):
+        if expr.base.is_integer and not expr.exp.is_integer:
+            expr = type(expr)(Float(expr.base), expr.exp)
+            return self._print(expr)
+        return "power(%s, %s)" % (
+            self._print(expr.base),
+            self._print_without_field(expr.exp)
+        )
+    
 def rust_code(expr, assign_to=None, **settings):
     """Converts an expr to a string of Rust code
 

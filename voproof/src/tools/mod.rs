@@ -1484,7 +1484,7 @@ mod tests {
   use super::*;
   use ark_bls12_381::Bls12_381 as E;
   use ark_bls12_381::Fr as F;
-  use ark_ff::{Field};
+  use ark_ff::Field;
   use ark_poly::{
     univariate::DensePolynomial as DensePoly, EvaluationDomain, Evaluations,
     GeneralEvaluationDomain,

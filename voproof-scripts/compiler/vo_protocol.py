@@ -222,6 +222,7 @@ class VOProtocolExecution(PublicCoinProtocolExecution):
     return expr
 
   def preprocess_vector(self, vector, size):
+    vector.as_preprocessed()
     if self.indexer_vectors is not None:
       self.indexer_vectors.add_vector(vector, size)
     else:

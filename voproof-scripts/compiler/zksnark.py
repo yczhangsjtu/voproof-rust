@@ -1,6 +1,6 @@
 from .symbol.names import get_name
 from .symbol.poly import NamedVectorPolynomial
-from .symbol.util import rust_pk_vk, rust_vk, get_rust_type, \
+from .symbol.util import rust_pk_vk, rust_pk, rust_vk, get_rust_type, \
     rust_to_bytes_replacement
 from .builder.latex import tex, LaTeXBuilder, Math, Enumerate, Itemize
 from .builder.rust import *
@@ -325,7 +325,12 @@ class ZKSNARKFromPIOPExecKZG(ZKSNARK):
   def _generate_points_poly_dict(self, queries):
     points_poly_dict = {}
     for query in queries:
-      self.prover_rust_define_poly_from_vec(query.poly, query.poly.to_vec())
+      self.prover_rust_define_poly_from_vec(
+        query.poly,
+        f"pk.{rust(query.poly.to_vec())}.clone()"
+        if query.poly._is_preprocessed
+        else rust(query.poly.to_vec())
+      )
       key = tex(query.point)
       if key not in points_poly_dict:
         points_poly_dict[key] = []

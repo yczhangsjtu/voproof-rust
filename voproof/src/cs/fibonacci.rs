@@ -1,19 +1,14 @@
-use std::marker::PhantomData;
-
 use super::*;
 
 #[derive(Clone, CanonicalSerialize, CanonicalDeserialize)]
 pub struct Fibonacci<F: Field> {
-  n: usize,
-  _phantom: PhantomData<F>,
+  pub n: usize,
+  pub t: Vec<F>,
 }
 
 impl<F: Field> Fibonacci<F> {
-  pub fn new(n: usize) -> Self {
-    Fibonacci {
-      n,
-      _phantom: PhantomData,
-    }
+  pub fn new(n: usize, t: Vec<F>) -> Self {
+    Fibonacci { n, t }
   }
 }
 

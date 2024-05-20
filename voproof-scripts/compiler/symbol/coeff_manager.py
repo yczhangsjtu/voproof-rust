@@ -25,14 +25,7 @@ class CoeffManager(object):
     if expr == 1 or expr == 0 or expr == -1 or isinstance(expr, Symbol):
       return expr
 
-    if rust(expr).startswith("1") or (rust(expr).find("power") == -1 and rust(expr).find("1") != -1):
-      """
-      This is a hack. If the expression starts with one, but is not
-      a power, then it contains the field element "one", but unfortunately
-      use the integer to represent it. In this case, force this expression
-      into a string while transforming all the integers into field elements
-      """
-      expr = rust(expr, to_field=True)
+    expr = rust(expr, to_field=True)
 
     key = tex(expr)
     if key in self._dict:

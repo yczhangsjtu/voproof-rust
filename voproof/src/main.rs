@@ -1,3 +1,5 @@
+use std::process::exit;
+
 use ark_ec::pairing::Pairing as PairingEngine;
 use ark_ff::fields::PrimeField;
 use ark_relations::{
@@ -7,7 +9,7 @@ use ark_relations::{
     Variable,
   },
 };
-use ark_std::test_rng;
+use ark_std::{test_rng, One};
 use voproof::kzg::UniversalParams;
 use voproof::snarks::{voproof_hpr::*, voproof_r1cs::*, SNARK};
 use voproof::tools::{fmt_field, to_field, to_int};
@@ -70,10 +72,13 @@ impl<F: PrimeField> ConstraintSynthesizer<F> for TestCircuit<F> {
 
 fn run_fibonacci_example<E: PairingEngine>(n: usize) -> Result<(), Error> {
   let a = to_field::<E::ScalarField>(1);
-  let b = a.clone();
+  let b = a;
+  let t = (0..n)
+    .map(|i| to_field::<E::ScalarField>(i as u64))
+    .collect::<Vec<_>>();
   let mut w = vec![a, b];
-  for _ in 0..n {
-    w.push(w[w.len() - 2].clone() + w[w.len() - 1].clone());
+  for i in 0..n {
+    w.push(w[w.len() - 2] + w[w.len() - 1] * t[i]);
     println!("{:?}", w.last().unwrap());
   }
   let c = *w.last().unwrap();
@@ -84,7 +89,7 @@ fn run_fibonacci_example<E: PairingEngine>(n: usize) -> Result<(), Error> {
     witness: w[2..].to_vec(),
   };
   println!("{:?}", w.witness);
-  let cs = Fibonacci::<E::ScalarField>::new(n);
+  let cs = Fibonacci::<E::ScalarField>::new(n, t);
   let pp: UniversalParams<E> = VOProofFibonacci::setup(VOProofFibonacci::get_max_degree(size))?;
   let (pk, vk) = VOProofFibonacci::index(&pp, &cs)?;
   let proof = VOProofFibonacci::prove(&pk, &x, &w)?;
@@ -189,8 +194,9 @@ fn run_hpr_example<E: PairingEngine>(scale: usize) -> Result<(), Error> {
 }
 
 fn main() {
-  if let Err(err) = run_fibonacci_example::<ark_bls12_381::Bls12_381>(10) {
+  if let Err(err) = run_fibonacci_example::<ark_bls12_381::Bls12_381>(5) {
     println!("{}", err);
+    exit(-1);
   } else {
     println!("Verification pass");
   }
