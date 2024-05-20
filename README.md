@@ -29,7 +29,7 @@ Here $N$ is the parameter of this relation, $(a,b,c)$ is an instance of this rel
 
 The first step of building a SNARK is arithmetization. This step does not have a clear definition. Generally speaking, the goal of this step is to transform the target NP relation into an equivalent NP relation that has a simpler and shallower structure. We call this new NP relation a **Constraint System**. This often involves unrolling the definition of the original NP relation and include the intermediate values into the witness.
 
-In this example, we write down the intermediate values in computing $`\mathsf{Fib}_N`$ as: $`w_1=a+b,w_2=b+w_0`$, then for every $i$ from $3$ to $N$, $`w_i=w_{i-2}+w_{i-1}`$.
+In this example, we write down the intermediate values in computing $`\mathsf{Fib}_N`$ as: $`w_1=a+b,w_2=b+w_1`$, then for every $i$ from $3$ to $N$, $`w_i=w_{i-2}+w_{i-1}`$.
 
 We collect all these intermediate values into a vector $\vec{w}$. Now it is obvious that the following NP language contains the same instances as the original NP language:
 ```math
