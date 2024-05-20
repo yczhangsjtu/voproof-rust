@@ -9,6 +9,7 @@ pub trait Instance<F: Field> {}
 pub trait Witness<F: Field> {}
 
 pub mod circuit;
+pub mod fibonacci;
 pub mod hpr;
 pub mod pov;
 pub mod r1cs;

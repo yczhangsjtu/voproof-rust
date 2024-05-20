@@ -888,6 +888,12 @@ def vec_lists_dump_at_index_then_inner_product(
   ret = simplify(ret, measure=custom_measure)
   if collect_symbols is not None:
     ret = collect(ret, collect_symbols)
+  if ret == 0:
+    return rust_zero()
+  if ret == 1:
+    return rust_one()
+  if isinstance(ret, Integer):
+    return rust(ret, to_field=True)
   return _rust_symbol_dictionary.dumpr(ret)
 
 

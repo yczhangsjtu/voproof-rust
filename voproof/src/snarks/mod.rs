@@ -1,6 +1,7 @@
 // mod template;
 
 use crate::cs::{
+  fibonacci::{Fibonacci, FibonacciInstance, FibonacciSize, FibonacciWitness},
   hpr::{HPRInstance, HPRSize, HPRWitness, HPR},
   pov::{POVInstance, POVSize, POVWitness, POV},
   r1cs::{R1CSInstance, R1CSSize, R1CSWitness, R1CS},
@@ -78,6 +79,7 @@ pub trait SNARK<E: PairingEngine> {
   fn verify(vk: &Self::VK, x: &Self::Ins, proof: &Self::Pf) -> Result<(), Error>;
 }
 
+pub mod fibonacci;
 pub mod voproof_hpr;
 pub mod voproof_pov;
 pub mod voproof_pov_prover_efficient;

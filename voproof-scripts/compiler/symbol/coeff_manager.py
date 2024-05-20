@@ -25,7 +25,7 @@ class CoeffManager(object):
     if expr == 1 or expr == 0 or expr == -1 or isinstance(expr, Symbol):
       return expr
 
-    if rust(expr).startswith("1"):
+    if rust(expr).startswith("1") or (rust(expr).find("power") == -1 and rust(expr).find("1") != -1):
       """
       This is a hack. If the expression starts with one, but is not
       a power, then it contains the field element "one", but unfortunately

@@ -235,8 +235,9 @@ class ZKSNARKFromPIOPExecKZG(ZKSNARK):
     for preprocess in piopexec.preprocessings:
       self.preprocess(preprocess.latex_builder, preprocess.rust_builder)
 
-    for poly, degree, rust_degree in piopexec.indexer_polynomials.polynomials:
-      self._process_indexer_polynomial(poly, degree, rust_degree)
+    if piopexec.indexer_polynomials is not None:
+      for poly, degree, rust_degree in piopexec.indexer_polynomials.polynomials:
+        self._process_indexer_polynomial(poly, degree, rust_degree)
 
     for p in piopexec.indexer_output_pk:
       self.preprocess_output_pk(p)

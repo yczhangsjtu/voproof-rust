@@ -8,16 +8,20 @@ use ark_relations::{
   },
 };
 use ark_std::test_rng;
-use voproof::cs::{
-  hpr::generate_random_hpr_instance,
-  r1cs::{R1CSInstance, R1CSWitness, R1CS},
-  ConstraintSystem,
-};
-use voproof::error::Error;
 use voproof::kzg::UniversalParams;
 use voproof::snarks::{voproof_hpr::*, voproof_r1cs::*, SNARK};
 use voproof::tools::{fmt_field, to_field, to_int};
 use voproof::*;
+use voproof::{cs::fibonacci::Fibonacci, error::Error};
+use voproof::{
+  cs::{
+    fibonacci::{FibonacciInstance, FibonacciSize, FibonacciWitness},
+    hpr::generate_random_hpr_instance,
+    r1cs::{R1CSInstance, R1CSWitness, R1CS},
+    ConstraintSystem,
+  },
+  snarks::fibonacci::VOProofFibonacci,
+};
 // use voproof::kzg::{KZG10, UniversalParams, Powers, VerifierKey, Randomness};
 
 #[derive(Copy)]
@@ -62,6 +66,29 @@ impl<F: PrimeField> ConstraintSynthesizer<F> for TestCircuit<F> {
 
     Ok(())
   }
+}
+
+fn run_fibonacci_example<E: PairingEngine>(n: usize) -> Result<(), Error> {
+  let a = to_field::<E::ScalarField>(1);
+  let b = a.clone();
+  let mut w = vec![a, b];
+  for _ in 0..n {
+    w.push(w[w.len() - 2].clone() + w[w.len() - 1].clone());
+    println!("{:?}", w.last().unwrap());
+  }
+  let c = *w.last().unwrap();
+
+  let x = FibonacciInstance { a, b, c };
+  let size = FibonacciSize { n };
+  let w = FibonacciWitness {
+    witness: w[2..].to_vec(),
+  };
+  println!("{:?}", w.witness);
+  let cs = Fibonacci::<E::ScalarField>::new(n);
+  let pp: UniversalParams<E> = VOProofFibonacci::setup(VOProofFibonacci::get_max_degree(size))?;
+  let (pk, vk) = VOProofFibonacci::index(&pp, &cs)?;
+  let proof = VOProofFibonacci::prove(&pk, &x, &w)?;
+  VOProofFibonacci::verify(&vk, &x, &proof)
 }
 
 fn run_r1cs_example<E: PairingEngine>() -> Result<(), Error> {
@@ -162,6 +189,12 @@ fn run_hpr_example<E: PairingEngine>(scale: usize) -> Result<(), Error> {
 }
 
 fn main() {
+  if let Err(err) = run_fibonacci_example::<ark_bls12_381::Bls12_381>(10) {
+    println!("{}", err);
+  } else {
+    println!("Verification pass");
+  }
+
   if let Err(err) = run_hpr_example::<ark_bls12_381::Bls12_381>(5) {
     println!("{}", err);
   } else {

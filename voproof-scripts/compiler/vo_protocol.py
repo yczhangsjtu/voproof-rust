@@ -370,7 +370,7 @@ class VOProtocol(object):
                         type(arg)
                     ))
 
-  def preprocess(self, voexec, pp_info, *args):
+  def preprocess(self, voexec, *args):
     raise Exception("Should not call VOProtocol.preprocess directly")
 
   def preprocess_with_prestored_args(self, voexec):

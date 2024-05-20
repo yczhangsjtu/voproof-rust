@@ -183,15 +183,16 @@ class PIOPFromVOProtocol(object):
 
     for pp in voexec.preprocessings:
       piopexec.preprocess(pp.latex_builder, pp.rust_builder)
-    for vector, size, _ in voexec.indexer_vectors.vectors:
-      poly = vector.to_named_vector_poly()
-      piopexec.preprocess_polynomial(poly, size)
-      vec_to_poly_dict[vector.key()] = poly
-      piopexec.pp_debug(
-          "vector %s of length {} = \n[{}]" % rust(vector),
-          "%s.len()" % rust(vector),
-          rust_fmt_ff_vector(vector)
-      )
+    if voexec.indexer_vectors is not None:
+      for vector, size, _ in voexec.indexer_vectors.vectors:
+        poly = vector.to_named_vector_poly()
+        piopexec.preprocess_polynomial(poly, size)
+        vec_to_poly_dict[vector.key()] = poly
+        piopexec.pp_debug(
+            "vector %s of length {} = \n[{}]" % rust(vector),
+            "%s.len()" % rust(vector),
+            rust_fmt_ff_vector(vector)
+        )
     piopexec.indexer_output_pk = voexec.indexer_output_pk
     piopexec.indexer_output_vk = voexec.indexer_output_vk
     piopexec.reference_to_voexec = voexec
@@ -435,7 +436,7 @@ class PIOPFromVOProtocol(object):
       self._process_inner_product(
           piopexec, extended_hadamard, shifts, samples, alpha)
 
-    max_shift = voexec.simplify_max(Max(*shifts))
+    max_shift = voexec.simplify_max(Max(*shifts)) if len(shifts) > 0 else 0
     rust_max_shift = piopexec.prover_redefine_symbol_rust(
         max_shift, "maxshift")
     piopexec.verifier_send_randomness(alpha)
