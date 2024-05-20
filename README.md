@@ -134,7 +134,7 @@ For the last condition, we need to use the vector shifting operation. Note that 
 ```math
 (\vec{w}^{\to 1}+\vec{w}^{\to 2}-\vec{w})\circ(0,0,1,\cdots,1)=(0,\cdots,0)\circ(0,\cdots,0)
 ```
-The "$\to k$" on the superscript means the vector is right shifted by $k$ positions. The second vector here contains two zeros followed by $N-2$ ones.
+The "$`\to k`$" on the superscript means the vector is right shifted by $k$ positions. The second vector here contains two zeros followed by $N-2$ ones.
 
 Now the protocol is finished. Note that the VO protocol is very simple: the prover submits one vector, and the verifier applies two Hadamard queries to check that this vector satisfies certain relations.
 
