@@ -284,7 +284,8 @@ for i from 1 to N
 	print b
 ```
 
-We redefine the relation to include $\vec{t}$ in its _index_. Now this relation becomes an indexed relation.```math
+We redefine the relation to include $\vec{t}$ in its _index_. Now this relation becomes an indexed relation.
+```math
 \mathcal{R}_N=\left\lbrace(\vec{t},(a,b,c),\perp)|\mathsf{Fib}_{N,\vec{t}}(a,b)=c\right\rbrace
 ```
 Similarly, we can arithmetize this extended relation as
