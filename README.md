@@ -436,10 +436,13 @@ The example code is updated accordingly.
 ```rust
 fn run_fibonacci_example<E: PairingEngine>(n: usize) -> Result<(), Error> {
   let a = to_field::<E::ScalarField>(1);
-  let b = a.clone();
+  let b = a;
+  let t = (0..n)
+    .map(|i| to_field::<E::ScalarField>(i as u64))
+    .collect::<Vec<_>>();
   let mut w = vec![a, b];
-  for _ in 0..n {
-    w.push(w[w.len() - 2].clone() + w[w.len() - 1].clone());
+  for i in 0..n {
+    w.push(w[w.len() - 2] + w[w.len() - 1] * t[i]);
     println!("{:?}", w.last().unwrap());
   }
   let c = *w.last().unwrap();
@@ -450,7 +453,7 @@ fn run_fibonacci_example<E: PairingEngine>(n: usize) -> Result<(), Error> {
     witness: w[2..].to_vec(),
   };
   println!("{:?}", w.witness);
-  let cs = Fibonacci::<E::ScalarField>::new(n, vec![one!(); n]);
+  let cs = Fibonacci::<E::ScalarField>::new(n, t);
   let pp: UniversalParams<E> = VOProofFibonacci::setup(VOProofFibonacci::get_max_degree(size))?;
   let (pk, vk) = VOProofFibonacci::index(&pp, &cs)?;
   let proof = VOProofFibonacci::prove(&pk, &x, &w)?;
