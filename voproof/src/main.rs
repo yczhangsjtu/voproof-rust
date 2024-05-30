@@ -10,6 +10,8 @@ use ark_relations::{
   },
 };
 use ark_std::{test_rng, One};
+use cs::range::{RangeCheck, RangeCheckInstance, RangeCheckSize, RangeCheckWitness};
+use snarks::range_check::VOProofRangeCheck;
 use voproof::kzg::UniversalParams;
 use voproof::snarks::{voproof_hpr::*, voproof_r1cs::*, SNARK};
 use voproof::tools::{fmt_field, to_field, to_int};
@@ -94,6 +96,25 @@ fn run_fibonacci_example<E: PairingEngine>(n: usize) -> Result<(), Error> {
   let (pk, vk) = VOProofFibonacci::index(&pp, &cs)?;
   let proof = VOProofFibonacci::prove(&pk, &x, &w)?;
   VOProofFibonacci::verify(&vk, &x, &proof)
+}
+
+fn run_range_check_example<E: PairingEngine>(n: usize, range: usize) -> Result<(), Error> {
+  let x = RangeCheckInstance::new();
+  let size = RangeCheckSize {
+    lookup_size: n,
+    range,
+  };
+  let w = RangeCheckWitness {
+    witness: (0..n)
+      .map(|i| to_field::<E::ScalarField>(((range as f64) * (i as f64) / (n as f64)) as u64))
+      .collect::<Vec<_>>(),
+  };
+  println!("{:?}", w.witness);
+  let cs = RangeCheck::<E::ScalarField>::new(n, range);
+  let pp: UniversalParams<E> = VOProofRangeCheck::setup(VOProofRangeCheck::get_max_degree(size))?;
+  let (pk, vk) = VOProofRangeCheck::index(&pp, &cs)?;
+  let proof = VOProofRangeCheck::prove(&pk, &x, &w)?;
+  VOProofRangeCheck::verify(&vk, &x, &proof)
 }
 
 fn run_r1cs_example<E: PairingEngine>() -> Result<(), Error> {
@@ -194,6 +215,13 @@ fn run_hpr_example<E: PairingEngine>(scale: usize) -> Result<(), Error> {
 }
 
 fn main() {
+  if let Err(err) = run_range_check_example::<ark_bls12_381::Bls12_381>(5, 10) {
+    println!("{}", err);
+    exit(-1);
+  } else {
+    println!("Verification pass");
+  }
+
   if let Err(err) = run_fibonacci_example::<ark_bls12_381::Bls12_381>(5) {
     println!("{}", err);
     exit(-1);

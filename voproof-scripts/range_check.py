@@ -35,7 +35,7 @@ f"""(0..{rust(range)}).map(|x| to_field::<E::ScalarField>(x as u64))
         w = get_named_vector("w")
         voexec.prover_rust_define_vec(w, "w.witness.clone()")
         voexec.prover_submit_vector(w, n)
-        voexec.run_subprotocol(Lookup(), pp_info, w, t, n, range)
+        voexec.run_subprotocol(Lookup(), {}, w, t, n, range)
 
 if __name__ == "__main__":
     set_debug_mode()
