@@ -52,6 +52,77 @@ class Permute(VOProtocol):
                            v + zeta * PowerVector(1, ell),
                            ell)
 
+class Lookup(VOProtocol):
+  def __init__(self):
+    super(Lookup, self).__init__("Lookup")
+  
+  def execute(self, voexec, pp_info, u, v, ell, t):
+    m = get_named_vector("m")
+
+    # Count how many times v[i] occurs in u[1..ell], for i from 1 to t
+    voexec.prover_rust_define_vec(m,
+f"""
+{{
+  let mut m = vec![0; {rust(t)}];
+  for i in 0..{rust(t)} {{
+    for j in 0..{rust(ell)} {{
+      if v[j] == i {{
+        m[i] += 1;
+      }}
+    }}
+  }}
+  m
+}}
+""")
+    voexec.prover_submit_vector(m, t)
+
+    beta = Symbol(get_name("beta"))
+    voexec.verifier_send_randomness(beta)
+    
+    r = get_named_vector("r")
+    voexec.prover_rust_define_vec(r,
+f"""
+{{
+let mut r = {rust(u)}.iter().take({rust(ell)}).map(|x| (*x + {rust(beta)})).collect::<Vec<_>>();
+batch_inversion(&mut r);
+r
+}}
+""")
+    voexec.prover_submit_vector(r, ell)
+
+    s = get_named_vector("s")
+    voexec.prover_rust_define_vec(s,
+f"""
+{{
+let mut s = {rust(v)}.iter().take({rust(t)}).map(|x| (*x + {rust(beta)})).collect::<Vec<_>>();
+batch_inversion(&mut s);
+for i in 0..{rust(t)} {{
+  s[i] *= {rust(m)}[i];
+}}
+s
+}}
+""")
+    voexec.prover_submit_vector(s, t)
+
+    # Check correctness of r and s
+    voexec.hadamard_query(
+        r,
+        u + PowerVector(1, ell) * beta,
+        PowerVector(1, ell),
+        PowerVector(1, ell)
+    )
+    voexec.hadamard_query(
+        s,
+        v + PowerVector(1, t) * beta,
+        m,
+        PowerVector(1, t)
+    )
+
+    # Final check: the sum is equal
+    voexec.inner_query(
+      r, PowerVector(1, ell),
+      s, PowerVector(1, t)
+    )
 
 class CopyCheck(VOProtocol):
   def __init__(self):
