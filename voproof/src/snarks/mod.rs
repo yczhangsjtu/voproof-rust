@@ -5,6 +5,7 @@ use crate::cs::{
   hpr::{HPRInstance, HPRSize, HPRWitness, HPR},
   pov::{POVInstance, POVSize, POVWitness, POV},
   r1cs::{R1CSInstance, R1CSSize, R1CSWitness, R1CS},
+  range::{RangeCheck, RangeCheckInstance, RangeCheckSize, RangeCheckWitness},
   CSSize, ConstraintSystem, Instance, Witness,
 };
 use crate::error::Error;
@@ -80,6 +81,7 @@ pub trait SNARK<E: PairingEngine> {
 }
 
 pub mod fibonacci;
+pub mod range_check;
 pub mod voproof_hpr;
 pub mod voproof_pov;
 pub mod voproof_pov_prover_efficient;

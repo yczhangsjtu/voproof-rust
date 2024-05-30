@@ -13,3 +13,4 @@ pub mod fibonacci;
 pub mod hpr;
 pub mod pov;
 pub mod r1cs;
+pub mod range;

@@ -56,18 +56,18 @@ class Lookup(VOProtocol):
   def __init__(self):
     super(Lookup, self).__init__("Lookup")
   
-  def execute(self, voexec, pp_info, u, v, ell, t):
+  def execute(self, voexec: VOProtocolExecution, pp_info, u, v, ell, t):
     m = get_named_vector("m")
 
     # Count how many times v[i] occurs in u[1..ell], for i from 1 to t
     voexec.prover_rust_define_vec(m,
 f"""
 {{
-  let mut m = vec![0; {rust(t)}];
-  for i in 0..{rust(t)} {{
-    for j in 0..{rust(ell)} {{
-      if v[j] == i {{
-        m[i] += 1;
+  let mut m = vec![zero!(); {rust(t)} as usize];
+  for i in 0..({rust(t)} as usize) {{
+    for j in 0..({rust(ell)} as usize) {{
+      if {rust_pk(u)}[j] == {rust_pk(v)}[i] {{
+        m[i] += to_field::<E::ScalarField>(1);
       }}
     }}
   }}
@@ -83,7 +83,7 @@ f"""
     voexec.prover_rust_define_vec(r,
 f"""
 {{
-let mut r = {rust(u)}.iter().take({rust(ell)}).map(|x| (*x + {rust(beta)})).collect::<Vec<_>>();
+let mut r = {rust(u)}.iter().take({rust(ell)} as usize).map(|x| (*x + {rust(beta)})).collect::<Vec<_>>();
 batch_inversion(&mut r);
 r
 }}
@@ -94,10 +94,10 @@ r
     voexec.prover_rust_define_vec(s,
 f"""
 {{
-let mut s = {rust(v)}.iter().take({rust(t)}).map(|x| (*x + {rust(beta)})).collect::<Vec<_>>();
+let mut s = {rust_pk(v)}.iter().take({rust(t)} as usize).map(|x| (*x + {rust(beta)})).collect::<Vec<_>>();
 batch_inversion(&mut s);
 for i in 0..{rust(t)} {{
-  s[i] *= {rust(m)}[i];
+  s[i as usize] *= {rust(m)}[i as usize];
 }}
 s
 }}
@@ -119,7 +119,7 @@ s
     )
 
     # Final check: the sum is equal
-    voexec.inner_query(
+    voexec.inner_product_query(
       r, PowerVector(1, ell),
       s, PowerVector(1, t)
     )

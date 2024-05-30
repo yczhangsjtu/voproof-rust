@@ -84,8 +84,8 @@ known_functions = {
     # "": "log10",
     # "": "to_degrees",
     # "": "to_radians",
-    "Max": "max",
-    "Min": "min",
+    "Max": "max!",
+    "Min": "min!",
     # "": "hypot",        # (x**2 + y**2) ** 0.5
     "sin": "sin",
     "cos": "cos",
