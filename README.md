@@ -1,4 +1,4 @@
-This codebase is the implementation of the paper _[VOProof: Efficient zkSNARKs from Vector Oracle Compilers](https://eprint.iacr.org/2021/710)_. VOProof is a framework for producing SNARKs for NP relations. This codebase has implemented the three SNARKs described in the paper, respective for the three NP relations: R1CS, HPR and PLONK. These relations are popular arithmetizations of the circuit satisfaction problem.
+This codebase is the implementation of the paper _[VOProof: Efficient zkSNARKs from Vector Oracle Compilers](https://eprint.iacr.org/2021/710)_. VOProof is a framework for producing SNARKs for NP relations. This codebase has implemented the three SNARKs described in the paper, respectively for the three NP relations: R1CS, HPR and PLONK. These relations are popular arithmetizations of the circuit satisfaction problem.
 
 This tutorial explains how to use this codebase to generate code for SNARKs for a given NP relation. For simplicity, we use the Fibonacci sequence as the example.
 
