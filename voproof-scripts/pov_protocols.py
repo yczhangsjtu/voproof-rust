@@ -15,8 +15,8 @@ class ProductEq(VOProtocol):
     super(ProductEq, self).__init__("ProductEq")
 
   def execute(self, voexec, pp_info, u, v, ell):
+    voexec.try_verifier_redefine_vector_size_rust()
     n = voexec.vector_size
-    voexec.try_verifier_redefine_vector_size_rust("n", n)
     rust_n = voexec.rust_vector_size
 
     r = get_named_vector("r")
@@ -175,12 +175,13 @@ class POV(VOProtocol):
 
   def execute(self, voexec: VOProtocolExecution, pp_info, x, a, b, c):
 
-    C, Cc, Ca, Cm, d, n = pp_info["C"], pp_info["Cc"], \
-      pp_info["Ca"], pp_info["Cm"], pp_info["d"], voexec.vector_size
+    C, Cc, Ca, Cm, d = pp_info["C"], pp_info["Cc"], \
+      pp_info["Ca"], pp_info["Cm"], pp_info["d"]
 
     # The expression of n is so complex. Put it in a variable.
-    voexec.try_verifier_redefine_vector_size_rust("n", n)
+    voexec.try_verifier_redefine_vector_size_rust()
     rust_n = voexec.rust_vector_size
+    n = voexec.vector_size
 
     w = get_named_vector("w")
     voexec.prover_rust_define_concat_vector(w, a, b, c)
@@ -237,11 +238,11 @@ class POVProverEfficient(VOProtocol):
 
   def execute(self, voexec, pp_info, x, a, b, c):
 
-    C, Cc, Ca, Cm, d, n = pp_info["C"], pp_info["Cc"], \
+    C, Cc, Ca, Cm, d = pp_info["C"], pp_info["Cc"], \
       pp_info["Ca"], pp_info["Cm"], pp_info["d"], voexec.vector_size
 
     # The expression of n is so complex. Put it in a variable.
-    voexec.try_verifier_redefine_vector_size_rust("n", n)
+    voexec.try_verifier_redefine_vector_size_rust()
 
     u = get_named_vector("u")
     v = get_named_vector("v")

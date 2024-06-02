@@ -250,8 +250,7 @@ class PIOPFromVOProtocol(object):
         Must be postponed to here because only now it is guaranteed that all the
         necessary variables that n depends on are defined
         """
-        voexec.try_verifier_redefine_vector_size_rust(
-            "n", voexec.vector_size, piopexec)
+        voexec.try_verifier_redefine_vector_size_rust(piopexec)
         for v, size, rust_size in interaction.vectors:
           self._process_prover_submitted_vector(
               piopexec, v, size, rust_size, samples)

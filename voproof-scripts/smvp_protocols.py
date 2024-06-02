@@ -260,8 +260,8 @@ class R1CS(VOProtocol):
     }
 
   def execute(self, voexec, pp_info, x, w, ell):
-    H, K, sa, sb, sc, n = pp_info["H"], pp_info["K"], \
-        pp_info["sa"], pp_info["sb"], pp_info["sc"], voexec.vector_size
+    H, K, sa, sb, sc = pp_info["H"], pp_info["K"], \
+        pp_info["sa"], pp_info["sb"], pp_info["sc"]
     M = pp_info["M"]
 
     voexec.verifier_rust_define_vec(x, "x.instance.clone()")
@@ -272,8 +272,9 @@ class R1CS(VOProtocol):
     voexec.verifier_rust_init_size(sb, "bdensity")
     voexec.verifier_rust_init_size(sc, "cdensity")
     voexec.verifier_rust_init_size(ell, "input_size")
-    voexec.try_verifier_redefine_vector_size_rust("n", n)
+    voexec.try_verifier_redefine_vector_size_rust()
     rust_n = voexec.rust_vector_size
+    n = voexec.vector_size
 
     u = get_named_vector("u")
     voexec.prover_rust_define_sparse_mvp_concat_vector(
@@ -323,14 +324,15 @@ class R1CSProverEfficient(VOProtocol):
     }
 
   def execute(self, voexec: VOProtocolExecution, pp_info, x, w, ell):
-    H, K, sa, sb, sc, n = pp_info["H"], pp_info["K"], \
-        pp_info["sa"], pp_info["sb"], pp_info["sc"], voexec.vector_size
+    H, K, sa, sb, sc = pp_info["H"], pp_info["K"], \
+        pp_info["sa"], pp_info["sb"], pp_info["sc"]
     M = pp_info["M"]
 
     voexec.verifier_rust_define_vec(x, "x.instance.clone()")
     voexec.prover_rust_define_vec(w, "w.witness.clone()")
-    voexec.try_verifier_redefine_vector_size_rust("n", n)
+    voexec.try_verifier_redefine_vector_size_rust()
     rust_n = voexec.rust_vector_size
+    n = voexec.vector_size
 
     y = get_named_vector("y")
     voexec.prover_rust_define_sparse_mvp_vector(
@@ -378,15 +380,16 @@ class HPR(VOProtocol):
     }
 
   def execute(self, voexec, pp_info, x, w1, w2, w3):
-    H, K, n = pp_info["H"], pp_info["K"], voexec.vector_size
+    H, K = pp_info["H"], pp_info["K"]
     
     voexec.verifier_rust_define_vec(x, "x.instance.clone()")
     voexec.prover_rust_define_vec(w1, "w.witness.0.clone()")
     voexec.prover_rust_define_vec(w2, "w.witness.1.clone()")
     voexec.prover_rust_define_vec(w3, "w.witness.2.clone()")
 
-    voexec.try_verifier_redefine_vector_size_rust("n", n)
+    voexec.try_verifier_redefine_vector_size_rust()
     rust_n = voexec.rust_vector_size
+    n = voexec.vector_size
 
     w = get_named_vector("w")
     voexec.prover_rust_define_concat_vector(w, w1, w2, w3)
